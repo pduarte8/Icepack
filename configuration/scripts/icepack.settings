@@ -7,7 +7,7 @@ setenv ICE_COMPILER   undefined
 setenv ICE_MACHCOMP   undefined
 setenv ICE_SCRIPTS    undefined
 setenv ICE_CASEDIR    undefined
-setenv ICE_RUNDIR     /glade/scratch/tcraig/ICEPACK_RUNS/${ICE_CASENAME}
+setenv ICE_RUNDIR     /cluster/home/pduarte/pduarte8/ICEPACK_RUNS/${ICE_CASENAME}
 setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
