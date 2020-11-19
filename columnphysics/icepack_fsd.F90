@@ -53,7 +53,7 @@
 
       private
       public :: icepack_init_fsd_bounds, icepack_init_fsd, icepack_cleanup_fsd, &
-         fsd_lateral_growth, fsd_add_new_ice, fsd_weld_thermo
+         fsd_lateral_growth, fsd_add_new_ice, fsd_weld_thermo, get_subdt_fsd
 
       real(kind=dbl_kind), dimension(:), allocatable ::  &
          floe_rad_h,         & ! fsd size higher bound in m (radius)
@@ -63,32 +63,33 @@
          floe_area_binwidth    ! floe area bin width (m^2)
 
       integer(kind=int_kind), dimension(:,:), allocatable, public ::  &
-         iweld			! floe size categories that can combine
-	 			! during welding (dimensionless)
+         iweld                 ! floe size categories that can combine
+                               ! during welding (dimensionless)
 
 !=======================================================================
 
       contains
 
 !=======================================================================
-!
-!  Initialize ice fsd bounds (call whether or not restarting)
-!  Define the bounds, midpoints and widths of floe size
-!  categories in area and radius
-!
 !  Note that radius widths cannot be larger than twice previous
 !  category width or floe welding will not have an effect
 !
 !  Note also that the bound of the lowest floe size category is used
 !  to define the lead region width and the domain spacing for wave fracture
 !
-!  authors: Lettie Roach, NIWA/VUW and C. M. Bitz, UW
+!autodocument_start icepack_init_fsd_bounds
+!  Initialize ice fsd bounds (call whether or not restarting)
+!  Define the bounds, midpoints and widths of floe size
+!  categories in area and radius
 !
+!  authors: Lettie Roach, NIWA/VUW and C. M. Bitz, UW
+
       subroutine icepack_init_fsd_bounds(nfsd, &
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)
-         c_fsd_range)      ! string for history output
+         c_fsd_range,   &  ! string for history output
+         write_diags    )  ! flag for writing diagnostics
 
       integer (kind=int_kind), intent(in) :: &
          nfsd              ! number of floe size categories
@@ -99,7 +100,12 @@
          floe_binwidth     ! fsd size bin width in m (radius)
 
       character (len=35), intent(out) :: &
-           c_fsd_range(nfsd) ! string for history output
+         c_fsd_range(nfsd) ! string for history output
+
+      logical (kind=log_kind), intent(in), optional :: &
+         write_diags       ! write diags flag
+
+!autodocument_end
 
       ! local variables
 
@@ -117,9 +123,17 @@
       real (kind=dbl_kind), dimension(:), allocatable :: &
          lims
 
+      logical (kind=log_kind) :: &
+         l_write_diags  ! local write diags
+
       character(len=8) :: c_fsd1,c_fsd2
       character(len=2) :: c_nf
-      character(len=*), parameter :: subname='(init_fsd_bounds)'
+      character(len=*), parameter :: subname='(icepack_init_fsd_bounds)'
+
+      l_write_diags = .true.
+      if (present(write_diags)) then
+         l_write_diags = write_diags
+      endif
 
       if (nfsd.eq.24) then
 
@@ -212,8 +226,14 @@
       floe_rad(0) = floe_rad_l(1)
       do n = 1, nfsd
          floe_rad(n) = floe_rad_h(n)
+         ! Save character string to write to history file
+         write (c_nf, '(i2)') n    
+         write (c_fsd1, '(f6.3)') floe_rad(n-1)
+         write (c_fsd2, '(f6.3)') floe_rad(n)
+         c_fsd_range(n)=c_fsd1//'m < fsd Cat '//c_nf//' < '//c_fsd2//'m'
       enddo
 
+      if (l_write_diags) then
          write(warnstr,*) ' '
          call icepack_warnings_add(warnstr)
          write(warnstr,*) subname
@@ -223,26 +243,14 @@
          do n = 1, nfsd
             write(warnstr,*) floe_rad(n-1),' < fsd Cat ',n, ' < ',floe_rad(n)
             call icepack_warnings_add(warnstr)
-            ! Write integer n to character string
-            write (c_nf, '(i2)') n    
-
-            ! Write floe_rad to character string
-            write (c_fsd1, '(f6.3)') floe_rad(n-1)
-            write (c_fsd2, '(f6.3)') floe_rad(n)
-
-            ! Save character string to write to history file
-            c_fsd_range(n)=c_fsd1//'m < fsd Cat '//c_nf//' < '//c_fsd2//'m'
          enddo
-
          write(warnstr,*) ' '
          call icepack_warnings_add(warnstr)
+      endif
 
       end subroutine icepack_init_fsd_bounds
 
 !=======================================================================
-!
-!  Initialize the FSD 
-!
 !  When growing from no-ice conditions, initialize to zero.
 !  This allows the FSD to emerge, as described in Roach, Horvat et al. (2018)
 !
@@ -253,6 +261,10 @@
 !  Perovich, D. K., & Jones, K. F. (2014). The seasonal evolution of 
 !  sea ice floe size distribution. Journal of Geophysical Research: Oceans,
 !  119(12), 8767–8777. doi:10.1002/2014JC010136
+!
+!autodocument_start icepack_init_fsd
+!
+!  Initialize the FSD 
 !
 !  authors: Lettie Roach, NIWA/VUW
 
@@ -273,6 +285,8 @@
 
       real (kind=dbl_kind), dimension (:), intent(inout) :: &
          afsd              ! floe size tracer: fraction distribution of floes
+
+!autodocument_end
 
       ! local variables
 
@@ -305,6 +319,7 @@
       end subroutine icepack_init_fsd
 
 !=======================================================================
+!autodocument_start icepack_cleanup_fsd
 !
 !  Clean up small values and renormalize
 !
@@ -319,15 +334,20 @@
       real (kind=dbl_kind), dimension(:,:), intent(inout) :: &
          afsdn              ! floe size distribution tracer
 
+!autodocument_end
       ! local variables
 
       integer (kind=int_kind) :: &
          n                  ! thickness category index
 
+      character(len=*), parameter :: subname='(icepack_cleanup_fsd)'
+
+
       if (tr_fsd) then
 
          do n = 1, ncat
             call icepack_cleanup_fsdn(nfsd, afsdn(:,n))
+            if (icepack_warnings_aborted(subname)) return
          enddo
 
       endif ! tr_fsd
@@ -546,6 +566,7 @@
                            aicen,      vicen,     &
                            afsdn,      lead_area, &
                            latsurf_area)
+      if (icepack_warnings_aborted(subname)) return
 
       vi0new_lat = c0
       if (latsurf_area > puny) then
@@ -565,6 +586,13 @@
                             + c2*aicen(n)*afsdn(k,n)*G_radial*dt/floe_rad_c(k)
             end do
          end do ! n
+         
+         ! cannot expand ice laterally beyond lead region
+         if (SUM(d_an_latg(:)).ge.lead_area) then
+             d_an_latg(:) = d_an_latg(:)/SUM(d_an_latg(:))
+             d_an_latg(:) = d_an_latg(:)*lead_area
+         end if
+
       endif ! vi0new_lat > 0
 
       ! Use remaining ice volume as in standard model,
@@ -649,20 +677,23 @@
          d_afsd_newi    ! new ice formation
 
       integer (kind=int_kind) :: &
-         k              ! floe size category index
+         k, &              ! floe size category index
+         new_size, &       ! index for floe size of new ice
+         nsubt             ! number of subtimesteps
+
+      real (kind=dbl_kind) :: &
+         elapsed_t, subdt  ! elapsed time, subtimestep (s)
 
       real (kind=dbl_kind), dimension (nfsd,ncat) :: &
          afsdn_latg     ! fsd after lateral growth
 
       real (kind=dbl_kind), dimension (nfsd) :: &
-         df_flx     , & ! finite differences for G_r*tilda(L)
+         dafsd_tmp,  &  ! tmp FSD
+         df_flx     , & ! finite differences for fsd
          afsd_ni        ! fsd after new ice added
 
       real (kind=dbl_kind), dimension(nfsd+1) :: &
          f_flx          ! finite differences in floe size
-
-      integer (kind=int_kind) :: &
-         new_size       ! index for floe size of new ice
 
       character(len=*),parameter :: subname='(fsd_add_new_ice)'
 
@@ -670,25 +701,46 @@
 
       if (d_an_latg(n) > puny) then ! lateral growth
 
-         df_flx(:) = c0 ! NB could stay zero if all in largest FS cat
-         f_flx (:) = c0
-         do k = 2, nfsd
-            f_flx(k) = G_radial * afsdn(k-1,n) / floe_binwidth(k-1)
-         end do
-         do k = 1, nfsd
-            df_flx(k) = f_flx(k+1) - f_flx(k)
-         end do
+         ! adaptive timestep
+         elapsed_t = c0
+         nsubt = 0
+
+         DO WHILE (elapsed_t.lt.dt)
+        
+             nsubt = nsubt + 1
+             if (nsubt.gt.100) print *, 'latg not converging'
+ 
+             ! finite differences
+             df_flx(:) = c0 ! NB could stay zero if all in largest FS cat
+             f_flx (:) = c0
+             do k = 2, nfsd
+                f_flx(k) = G_radial * afsdn_latg(k-1,n) / floe_binwidth(k-1)
+             end do
+             do k = 1, nfsd
+                df_flx(k) = f_flx(k+1) - f_flx(k)
+             end do
 
 !         if (abs(sum(df_flx)) > puny) print*,'fsd_add_new ERROR df_flx /= 0'
 
-         afsdn_latg(:,n) = c0
-         do k = 1, nfsd
-            afsdn_latg(k,n) = afsdn(k,n) &
-                            + dt * (-df_flx(k) + c2 * G_radial * afsdn(k,n) &
-                            * (c1/floe_rad_c(k) - SUM(afsdn(:,n)/floe_rad_c(:))) )
-         end do
+             dafsd_tmp(:) = c0
+             do k = 1, nfsd
+                dafsd_tmp(k) = (-df_flx(k) + c2 * G_radial * afsdn_latg(k,n) &
+                            * (c1/floe_rad_c(k) - SUM(afsdn_latg(:,n)/floe_rad_c(:))) )
+
+             end do
+
+            ! timestep required for this
+            subdt = get_subdt_fsd(nfsd, afsdn_latg(:,n), dafsd_tmp(:)) 
+            subdt = MIN(subdt, dt)
+ 
+            ! update fsd and elapsed time
+            afsdn_latg(:,n) = afsdn_latg(:,n) + subdt*dafsd_tmp(:)
+            elapsed_t = elapsed_t + subdt
+
+         END DO
 
          call icepack_cleanup_fsdn (nfsd, afsdn_latg(:,n))
+         if (icepack_warnings_aborted(subname)) return
          trcrn(nt_fsd:nt_fsd+nfsd-1,n) = afsdn_latg(:,n)
 
       end if ! lat growth
@@ -703,11 +755,13 @@
             if (SUM(afsdn_latg(:,n)) > puny) then ! fsd exists
 
                if (wave_spec) then
-                  if (wave_sig_ht > puny) &
+                  if (wave_sig_ht > puny) then
                      call wave_dep_growth (nfsd, wave_spectrum, &
                                            wavefreq, dwavefreq, &
                                            new_size)
-               
+                     if (icepack_warnings_aborted(subname)) return
+                  end if
+
                   ! grow in new_size category
                   afsd_ni(new_size) = (afsdn_latg(new_size,n)*area2(n) + ai0new) &
                                                           / (area2(n) + ai0new)
@@ -729,10 +783,13 @@
             else ! no fsd, so entirely new ice
 
                if (wave_spec) then
-                  if (wave_sig_ht > puny) &
+                  if (wave_sig_ht > puny) then
                      call wave_dep_growth (nfsd, wave_spectrum, &
                                            wavefreq, dwavefreq, &
                                            new_size)
+                     if (icepack_warnings_aborted(subname)) return
+                  end if
+
                   afsd_ni(new_size) = c1
                else
                   afsd_ni(1) = c1
@@ -742,7 +799,7 @@
 
             trcrn(nt_fsd:nt_fsd+nfsd-1,n) = afsd_ni(:)
             call icepack_cleanup_fsdn (nfsd, trcrn(nt_fsd:nt_fsd+nfsd-1,n))
-
+            if (icepack_warnings_aborted(subname)) return
          endif ! d_an_newi > puny
       endif    ! n = 1
 
@@ -778,9 +835,9 @@
 
       real (kind=dbl_kind), dimension(:), intent(in) :: &
          local_wave_spec ! ocean surface wave spectrum as a function of frequency
-	 		 ! power spectral density of surface elevation, E(f) (units m^2 s)
-	 		 ! dimension set in ice_forcing
-	 		
+                         ! power spectral density of surface elevation, E(f) (units m^2 s)
+                         ! dimension set in ice_forcing
+
       real(kind=dbl_kind), dimension(:), intent(in) :: &
          wavefreq,     & ! wave frequencies (s^-1)
          dwavefreq       ! wave frequency bin widths (s^-1)
@@ -791,7 +848,7 @@
       ! local variables
       real (kind=dbl_kind), parameter :: &
          tensile_param = 0.167_dbl_kind ! tensile mode parameter (kg m^-1 s^-2)
-	 				! value from Roach, Smith & Dean (2018)
+                                        ! value from Roach, Smith & Dean (2018)
 
       real (kind=dbl_kind)  :: &
          w_amp,       & ! wave amplitude (m)
@@ -889,6 +946,9 @@
          subdt      , & ! subcycling time step for stability (s)
          elapsed_t      ! elapsed subcycling time
 
+      character(len=*), parameter :: subname='(fsd_weld_thermo)'
+
+
       afsdn  (:,:) = c0
       afsd_init(:) = c0
       stability    = c0
@@ -900,6 +960,7 @@
          d_afsdn_weld(:,n) = c0
          afsdn(:,n) = trcrn(nt_fsd:nt_fsd+nfsd-1,n)
          call icepack_cleanup_fsdn (nfsd, afsdn(:,n))
+         if (icepack_warnings_aborted(subname)) return
 
          ! If there is some ice in the lower (nfsd-1) categories
          ! and there is freezing potential
@@ -961,6 +1022,7 @@
             END DO ! time
 
             call icepack_cleanup_fsdn (nfsd, afsdn(:,n))
+            if (icepack_warnings_aborted(subname)) return
 
             do k = 1, nfsd
                afsdn(k,n) = afsd_tmp(k)
@@ -980,6 +1042,44 @@
       end do    ! k
 
       end subroutine fsd_weld_thermo
+
+!=======================================================================
+!
+!  Adaptive timestepping (process agnostic)
+!  See reference: Horvat & Tziperman (2017) JGR, Appendix A
+!
+!  authors: 2018 Lettie Roach, NIWA/VUW
+!
+!
+      function get_subdt_fsd(nfsd, afsd_init, d_afsd) &
+                              result(subdt)
+
+      integer (kind=int_kind), intent(in) :: &
+         nfsd       ! number of floe size categories
+
+      real (kind=dbl_kind), dimension (nfsd), intent(in) :: &
+         afsd_init, d_afsd ! floe size distribution tracer 
+
+      ! output
+      real (kind=dbl_kind) :: &
+         subdt ! subcycle timestep (s)
+
+      ! local variables
+      real (kind=dbl_kind), dimension (nfsd) :: &
+         check_dt ! to compute subcycle timestep (s)
+
+      integer (kind=int_kind) :: k
+
+      check_dt(:) = bignum 
+      do k = 1, nfsd
+          if (d_afsd(k) >  puny) check_dt(k) = (1-afsd_init(k))/d_afsd(k)
+          if (d_afsd(k) < -puny) check_dt(k) = afsd_init(k)/ABS(d_afsd(k))
+      end do 
+
+      subdt = MINVAL(check_dt)
+
+      end function get_subdt_fsd
+
 
 !=======================================================================
 

@@ -1,9 +1,9 @@
-#! /bin/csh -f
+#!/bin/csh -f
 
 if ( $1 != "" ) then
-  echo ${0:t} ${1}
+  echo "running icepack.batch.csh (creating ${1})"
 else
-  echo ${0:t}
+  echo "running icepack.batch.csh"
 endif
 
 source ./icepack.settings
@@ -67,10 +67,12 @@ cat >> ${jobfile} << EOFB
 #PBS -q ${ICE_MACHINE_QUEUE}
 #PBS -N ${ICE_CASENAME}
 #PBS -l nodes=1:ppn=48
-#PBS -l walltime=${ICE_RUNLENGTH}
+###PBS -l walltime=${ICE_RUNLENGTH}
+### Give izumi a little more time for tests.
+#PBS -l walltime=00:50:00
 EOFB
 
-else if (${ICE_MACHINE} =~ thunder* || ${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad* || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
+else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad* || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr*) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${ICE_MACHINE_QUEUE}
@@ -98,7 +100,7 @@ else if (${ICE_MACHINE} =~ cori*) then
 @ nthrds2 = ${nthrds} * 2
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
-###SBATCH -A ${acct}
+#SBATCH -A ${acct}
 #SBATCH --qos shared
 #SBATCH --ntasks ${ncores}
 #SBATCH --time ${ICE_RUNLENGTH}
@@ -123,11 +125,6 @@ cat >> ${jobfile} << EOFB
 #SBATCH --qos=standby
 EOFB
 
-else if (${ICE_MACHINE} =~ loft*) then
-cat >> ${jobfile} << EOFB
-# nothing to do
-EOFB
-
 else if (${ICE_MACHINE} =~ high_Sierra*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
@@ -139,6 +136,11 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ travisCI*) then
+cat >> ${jobfile} << EOFB
+# nothing to do
+EOFB
+
+else if (${ICE_MACHINE} =~ conda*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
 EOFB

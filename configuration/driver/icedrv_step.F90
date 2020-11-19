@@ -41,7 +41,8 @@
       use icedrv_flux, only: scale_factor, swvdr, swvdf, swidr, swidf
       use icedrv_flux, only: alvdr_ai, alvdf_ai, alidr_ai, alidf_ai
       use icedrv_flux, only: alvdr_init, alvdf_init, alidr_init, alidf_init
-      use icedrv_arrays_column, only: fswsfcn, fswintn, fswthrun
+      use icedrv_arrays_column, only: fswsfcn, fswintn
+      use icedrv_arrays_column, only: fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use icedrv_arrays_column, only: fswpenln, Sswabsn, Iswabsn
       use icedrv_state, only: aice, aicen
 
@@ -74,7 +75,12 @@
                          alidr_ai=alidr_ai(i), alidf_ai=alidf_ai(i), &
                          scale_factor=scale_factor(i),     &
                          fswsfcn=fswsfcn(i,:),   fswintn=fswintn(i,:),     &
-                         fswthrun=fswthrun(i,:), fswpenln=fswpenln(i,:,:), &
+                         fswthrun=fswthrun(i,:),           &
+                         fswthrun_vdr=fswthrun_vdr(i,:),     &
+                         fswthrun_vdf=fswthrun_vdf(i,:),     &
+                         fswthrun_idr=fswthrun_idr(i,:),     &
+                         fswthrun_idf=fswthrun_idf(i,:),     &
+                         fswpenln=fswpenln(i,:,:),         &
                          Sswabsn=Sswabsn(i,:,:), Iswabsn=Iswabsn(i,:,:))
 
          enddo               ! i
@@ -100,21 +106,26 @@
       use icedrv_arrays_column, only: Cdn_atm_rdg, Cdn_atm_pond
       use icedrv_arrays_column, only: hfreebd, hdraft, hridge, distrdg
       use icedrv_arrays_column, only: hkeel, dkeel, lfloe, dfloe
-      use icedrv_arrays_column, only: fswsfcn, fswintn, fswthrun, Sswabsn, Iswabsn
+      use icedrv_arrays_column, only: fswsfcn, fswintn, Sswabsn, Iswabsn
+      use icedrv_arrays_column, only: fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use icedrv_calendar, only: yday
-      use icedrv_domain_size, only: ncat, nilyr, nslyr, n_aero, nx
+      use icedrv_domain_size, only: ncat, nilyr, nslyr, n_aero, n_iso, nx
       use icedrv_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fside, &
                              fbot, Tbot, Tsnice
       use icedrv_flux, only: meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm
-      use icedrv_flux, only: wind, rhoa, potT, Qa, zlvl, strax, stray, flatn
+      use icedrv_flux, only: wind, rhoa, potT, Qa, Qa_iso, zlvl, strax, stray, flatn
       use icedrv_flux, only: fsensn, fsurfn, fcondtopn, fcondbotn
       use icedrv_flux, only: flw, fsnow, fpond, sss, mlt_onset, frz_onset
       use icedrv_flux, only: frain, Tair, strairxT, strairyT, fsurf
       use icedrv_flux, only: fcondtop, fcondbot, fsens, fresh, fsalt, fhocn
-      use icedrv_flux, only: flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref
-      use icedrv_flux, only: fswthru, meltt, melts, meltb, congel, snoice
+      use icedrv_flux, only: flat, fswabs, flwout, evap, evaps, evapi
+      use icedrv_flux, only: Tref, Qref, Qref_iso, Uref
+      use icedrv_flux, only: meltt, melts, meltb, congel, snoice
+      use icedrv_flux, only: fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
       use icedrv_flux, only: flatn_f, fsensn_f, fsurfn_f, fcondtopn_f
       use icedrv_flux, only: dsnown, faero_atm, faero_ocn
+      use icedrv_flux, only: fiso_atm, fiso_ocn, fiso_evap
+      use icedrv_flux, only: HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use icedrv_init, only: lmask_n, lmask_s
       use icedrv_state, only: aice, aicen, aice_init, aicen_init, vicen_init
       use icedrv_state, only: vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
@@ -137,14 +148,18 @@
 
       integer (kind=int_kind) :: &
          ntrcr, nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
-         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno
+         nt_iage, nt_FY, nt_qice, nt_sice, nt_qsno, &
+         nt_aero, nt_isosno, nt_isoice
 
       logical (kind=log_kind) :: &
-         tr_iage, tr_FY, tr_aero, tr_pond, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_aero, tr_iso, tr_pond, tr_pond_cesm, &
          tr_pond_lvl, tr_pond_topo, calc_Tsfc
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
          aerosno,  aeroice    ! kg/m^2
+
+      real (kind=dbl_kind), dimension(n_iso,ncat) :: &
+         isosno,  isoice    ! kg/m^2
 
       real (kind=dbl_kind) :: &
          puny
@@ -168,19 +183,21 @@
           file=__FILE__,line= __LINE__)
 
       call icepack_query_tracer_flags( &
-           tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-           tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
-           tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+         tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+         tr_aero_out=tr_aero, tr_iso_out=tr_iso, &
+         tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__,line= __LINE__)
 
       call icepack_query_tracer_indices( &
-           nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
-           nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
-           nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
-           nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
-           nt_aero_out=nt_aero, nt_qsno_out=nt_qsno)
+         nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
+         nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
+         nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
+         nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
+         nt_aero_out=nt_aero, nt_qsno_out=nt_qsno, &
+         nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__,line= __LINE__)
@@ -190,6 +207,8 @@
       prescribed_ice = .false.
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
+      isosno (:,:)   = c0
+      isoice (:,:)   = c0
 
       do i = 1, nx
 
@@ -223,7 +242,17 @@
             enddo
           enddo
         endif ! tr_aero
-
+        
+        if (tr_iso) then
+          ! trcrn(nt_isosno/ice) has units kg/m^3
+          do n=1,ncat
+            do k=1,n_iso
+              isosno(k,n) = trcrn(i,nt_isosno+k-1,n) * vsnon_init(i,n)
+              isoice(k,n) = trcrn(i,nt_isoice+k-1,n) * vicen_init(i,n)
+            enddo
+          enddo
+        endif ! tr_iso
+        
         call icepack_step_therm1(dt=dt, ncat=ncat, nilyr=nilyr, nslyr=nslyr, &
             aicen_init = aicen_init(i,:), &
             vicen_init = vicen_init(i,:), &
@@ -245,11 +274,15 @@
             FY   = trcrn(i,nt_FY,:),                   & 
             aerosno = aerosno(:,:,:),        &
             aeroice = aeroice(:,:,:),        &
+            isosno  = isosno(:,:),           &
+            isoice  = isoice(:,:),           &
             uatm = uatm(i), vatm = vatm(i),  &
             wind = wind(i), zlvl = zlvl(i),  &
             Qa   = Qa(i),   rhoa = rhoa(i),  &
+            Qa_iso = Qa_iso(i,:),            &
             Tair = Tair(i), Tref = Tref(i),  &
             Qref = Qref(i), Uref = Uref(i),  &
+            Qref_iso = Qref_iso(i,:),        &
             Cdn_atm_ratio = Cdn_atm_ratio(i),&
             Cdn_ocn       = Cdn_ocn(i),      &
             Cdn_ocn_skin  = Cdn_ocn_skin(i), &
@@ -278,17 +311,33 @@
             fcondtop = fcondtop(i),   fcondtopn = fcondtopn(i,:), &
             fcondbot = fcondbot(i),   fcondbotn = fcondbotn(i,:), &
             fswsfcn  = fswsfcn(i,:),  fswintn   = fswintn(i,:),   &
-            fswthrun = fswthrun(i,:), fswabs    = fswabs(i),      &
+            fswthrun = fswthrun(i,:),                             &
+            fswthrun_vdr = fswthrun_vdr(i,:),                       &
+            fswthrun_vdf = fswthrun_vdf(i,:),                       &
+            fswthrun_idr = fswthrun_idr(i,:),                       &
+            fswthrun_idf = fswthrun_idf(i,:),                       &
+            fswabs    = fswabs(i),                                &
             flwout   = flwout(i),     flw       = flw(i),         &
             fsens    = fsens(i),      fsensn    = fsensn(i,:),    &
             flat     = flat(i),       flatn     = flatn(i,:),     &
             fresh    = fresh(i),      fsalt     = fsalt(i),       &
-            fhocn    = fhocn(i),      fswthru   = fswthru(i),     &
+            fhocn    = fhocn(i),                                  &
+            fswthru   = fswthru(i),                               &
+            fswthru_vdr= fswthru_vdr(i),                          &
+            fswthru_vdf= fswthru_vdf(i),                          &
+            fswthru_idr= fswthru_idr(i),                          &
+            fswthru_idf= fswthru_idf(i),                          &
             flatn_f  = flatn_f(i,:),  fsensn_f  = fsensn_f(i,:),  &
             fsurfn_f = fsurfn_f(i,:),                             &
             fcondtopn_f = fcondtopn_f(i,:),                       &
             faero_atm   = faero_atm(i,1:n_aero),                  &
             faero_ocn   = faero_ocn(i,1:n_aero),                  &
+            fiso_atm    = fiso_atm   (i,:),                       &
+            fiso_ocn    = fiso_ocn   (i,:),                       &
+            fiso_evap   = fiso_evap  (i,:),                       &
+            HDO_ocn     = HDO_ocn (i),                            &
+            H2_16O_ocn  = H2_16O_ocn (i),                         &
+            H2_18O_ocn  = H2_18O_ocn (i),                         &
             Sswabsn  = Sswabsn(i,:,:),Iswabsn   = Iswabsn(i,:,:), &
             evap = evap(i), evaps = evaps(i), evapi = evapi(i),   &
             dhsn     = dhsn(i,:),     ffracn    = ffracn(i,:),    &
@@ -317,6 +366,17 @@
           enddo
         endif ! tr_aero
         
+        if (tr_iso) then
+          do n = 1, ncat
+            if (vicen(i,n) > puny) isoice(:,n) = isoice(:,n)/vicen(i,n)
+            if (vsnon(i,n) > puny) isosno(:,n) = isosno(:,n)/vsnon(i,n)
+            do k = 1, n_iso
+               trcrn(i,nt_isosno+k-1,n) = isosno(k,n)
+               trcrn(i,nt_isoice+k-1,n) = isoice(k,n)
+            enddo
+          enddo
+        endif ! tr_iso
+        
       enddo ! i
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
@@ -344,7 +404,8 @@
                                     nltrcr, nx, nfsd
       use icedrv_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset
       use icedrv_flux, only: update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside
-      use icedrv_flux, only: meltl, frazil_diag, flux_bio, faero_ocn 
+      use icedrv_flux, only: meltl, frazil_diag, flux_bio, faero_ocn, fiso_ocn 
+      use icedrv_flux, only: HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use icedrv_init, only: tmask
       use icedrv_state, only: aice, aicen, aice0, trcr_depend
       use icedrv_state, only: aicen_init, vicen_init, trcrn, vicen, vsnon
@@ -419,6 +480,10 @@
                          frazil_diag=frazil_diag(i),                  &
                          frz_onset=frz_onset(i),                      &
                          yday=yday,                                   &
+                         fiso_ocn=fiso_ocn(i,:),                      &
+                         HDO_ocn=HDO_ocn(i),                          &
+                         H2_16O_ocn=H2_16O_ocn(i),                    &
+                         H2_18O_ocn=H2_18O_ocn(i),                    &
                          nfsd=nfsd,   wave_sig_ht=wave_sig_ht(i),     &
                          wave_spectrum=wave_spectrum(i,:),            &
                          wavefreq=wavefreq(:),                        &
@@ -610,7 +675,7 @@
       use icedrv_flux, only: rdg_conv, rdg_shear, dardg1dt, dardg2dt
       use icedrv_flux, only: dvirdgdt, opening, closing, fpond, fresh, fhocn
       use icedrv_flux, only: aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt
-      use icedrv_flux, only: dvirdgndt, araftn, vraftn, fsalt, flux_bio, faero_ocn
+      use icedrv_flux, only: dvirdgndt, araftn, vraftn, fsalt, flux_bio, faero_ocn, fiso_ocn
       use icedrv_init, only: tmask
       use icedrv_state, only: trcrn, vsnon, aicen, vicen
       use icedrv_state, only: aice, aice0, trcr_depend, n_trcr_strata
@@ -675,7 +740,7 @@
                          fpond=fpond(i),                                     &
                          fresh=fresh(i),           fhocn=fhocn(i),           &
                          n_aero=n_aero,                                      &
-                         faero_ocn=faero_ocn(i,:),                           &
+                         faero_ocn=faero_ocn(i,:), fiso_ocn=fiso_ocn(i,:),   &
                          aparticn=aparticn(i,:),   krdgn=krdgn(i,:),         &
                          aredistn=aredistn(i,:),   vredistn=vredistn(i,:),   &
                          dardg1ndt=dardg1ndt(i,:), dardg2ndt=dardg2ndt(i,:), &
@@ -718,7 +783,7 @@
                          fpond=fpond(i),                                     &
                          fresh=fresh(i),           fhocn=fhocn(i),           &
                          n_aero=n_aero,                                      &
-                         faero_ocn=faero_ocn(i,:),                           &
+                         faero_ocn=faero_ocn(i,:), fiso_ocn=fiso_ocn(i,:),   &
                          aparticn=aparticn(i,:),   krdgn=krdgn(i,:),         &
                          aredistn=aredistn(i,:),   vredistn=vredistn(i,:),   &
                          dardg1ndt=dardg1ndt(i,:), dardg2ndt=dardg2ndt(i,:), &
@@ -750,7 +815,8 @@
       subroutine step_radiation (dt)
 
       use icedrv_arrays_column, only: ffracn, dhsn
-      use icedrv_arrays_column, only: fswsfcn, fswintn, fswthrun, fswpenln, Sswabsn, Iswabsn
+      use icedrv_arrays_column, only: fswsfcn, fswintn, fswpenln, Sswabsn, Iswabsn
+      use icedrv_arrays_column, only: fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use icedrv_arrays_column, only: albicen, albsnon, albpndn
       use icedrv_arrays_column, only: alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn
       use icedrv_arrays_column, only: kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab
@@ -878,7 +944,12 @@
                          alvdrn=alvdrn(i,:),        alvdfn=alvdfn(i,:),       &
                          alidrn=alidrn(i,:),        alidfn=alidfn(i,:),       &
                          fswsfcn=fswsfcn(i,:),      fswintn=fswintn(i,:),     &
-                         fswthrun=fswthrun(i,:),    fswpenln=fswpenln(i,:,:), &
+                         fswthrun=fswthrun(i,:),                              &
+                         fswthrun_vdr=fswthrun_vdr(i,:),                      &
+                         fswthrun_vdf=fswthrun_vdf(i,:),                      &
+                         fswthrun_idr=fswthrun_idr(i,:),                      &
+                         fswthrun_idf=fswthrun_idf(i,:),                      &
+                         fswpenln=fswpenln(i,:,:),                            &
                          Sswabsn=Sswabsn(i,:,:),    Iswabsn=Iswabsn(i,:,:),   &
                          albicen=albicen(i,:),      albsnon=albsnon(i,:),     &
                          albpndn=albpndn(i,:),      apeffn=apeffn(i,:),       &
@@ -1058,7 +1129,7 @@
       use icedrv_domain_size, only: n_doc, n_dic,  n_don, n_fed, n_fep, nx
       use icedrv_flux, only: meltbn, melttn, congeln, snoicen
       use icedrv_flux, only: sst, sss, fsnow, meltsn
-      use icedrv_flux, only: hin_old, flux_bio, flux_bio_atm, faero_atm 
+      use icedrv_flux, only: hin_old, flux_bio, flux_bio_atm, faero_atm
       use icedrv_flux, only: nit, amm, sil, dmsp, dms, algalN, doc, don, dic, fed, fep, zaeros, hum
       use icedrv_state, only: aicen_init, vicen_init, aicen, vicen, vsnon
       use icedrv_state, only: trcrn, vsnon_init, aice0                    

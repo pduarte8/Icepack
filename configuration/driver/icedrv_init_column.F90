@@ -96,7 +96,8 @@
 
       use icedrv_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen
       use icedrv_arrays_column, only: albsnon, alvdrn, alidrn, alvdfn, alidfn
-      use icedrv_arrays_column, only: fswsfcn, fswthrun, ffracn, snowfracn
+      use icedrv_arrays_column, only: fswsfcn, ffracn, snowfracn
+      use icedrv_arrays_column, only: fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use icedrv_arrays_column, only: fswintn, albpndn, apeffn, trcrn_sw, dhsn
       use icedrv_arrays_column, only: kaer_tab, waer_tab, gaer_tab
       use icedrv_arrays_column, only: kaer_bc_tab, waer_bc_tab, gaer_bc_tab
@@ -175,8 +176,6 @@
          Iswabsn(:,:,:) = c0
          Sswabsn(:,:,:) = c0
 
-      !$OMP PARALLEL DO PRIVATE(i,n, &
-      !$OMP                     l_print_point)
          do i = 1, nx
 
             l_print_point = .false.
@@ -203,6 +202,10 @@
                fswsfcn(i,n) = c0
                fswintn(i,n) = c0
                fswthrun(i,n) = c0
+               fswthrun_vdr(i,n) = c0
+               fswthrun_vdf(i,n) = c0
+               fswthrun_idr(i,n) = c0
+               fswthrun_idf(i,n) = c0
             enddo   ! ncat
 
          enddo
@@ -262,7 +265,12 @@
                          alvdrn=alvdrn(i,:),     alvdfn=alvdfn(i,:),       &
                          alidrn=alidrn(i,:),     alidfn=alidfn(i,:),       &
                          fswsfcn=fswsfcn(i,:),   fswintn=fswintn(i,:),     &
-                         fswthrun=fswthrun(i,:), fswpenln=fswpenln(i,:,:), &
+                         fswthrun=fswthrun(i,:),                           &
+                         fswthrun_vdr=fswthrun_vdr(i,:),                   &
+                         fswthrun_vdf=fswthrun_vdf(i,:),                   &
+                         fswthrun_idr=fswthrun_idr(i,:),                   &
+                         fswthrun_idf=fswthrun_idf(i,:),                   &
+                         fswpenln=fswpenln(i,:,:),                         &
                          Sswabsn=Sswabsn(i,:,:), Iswabsn=Iswabsn(i,:,:),   &
                          albicen=albicen(i,:),   albsnon=albsnon(i,:),     &
                          albpndn=albpndn(i,:),   apeffn=apeffn(i,:),       &
@@ -287,11 +295,14 @@
                enddo
             endif
 
+         enddo
+
       !-----------------------------------------------------------------
       ! Aggregate albedos 
       !-----------------------------------------------------------------
 
-            do n = 1, ncat
+         do n = 1, ncat
+            do i = 1, nx
                
                if (aicen(i,n) > puny) then
                   
@@ -311,8 +322,10 @@
                   snowfrac(i) = snowfrac(i) + snowfracn(i,n)*aicen(i,n)
                
                endif ! aicen > puny
+            enddo  ! i
+         enddo   ! ncat
 
-            enddo  ! ncat
+         do i = 1, nx
 
       !----------------------------------------------------------------
       ! Store grid box mean albedos and fluxes before scaling by aice
@@ -1238,6 +1251,7 @@
       ntd = 0                    ! if nt_fbri /= 0 then use fbri dependency
       if (nt_fbri == 0) ntd = -1 ! otherwise make tracers depend on ice volume
 
+      nt_bgc_S = 0
       if (solve_zsal) then       ! .true. only if tr_brine = .true.
           nt_bgc_S = ntrcr + 1
           ntrcr = ntrcr + nblyr
@@ -1311,6 +1325,7 @@
       nt_bgc_DMS    = 0
       nt_bgc_PON    = 0
       nt_bgc_hum    = 0
+      nt_zbgc_frac  = 0
 
       !-----------------------------------------------------------------
       ! Define array parameters
@@ -1700,7 +1715,6 @@
          endif      ! tr_zaero
 
 !echmod keep trcr indices etc here but move zbgc_frac_init, zbgc_init_frac, tau_ret, tau_rel to icepack
-         nt_zbgc_frac = 0
          if (nbtrcr > 0) then
             nt_zbgc_frac = ntrcr + 1
             ntrcr = ntrcr + nbtrcr

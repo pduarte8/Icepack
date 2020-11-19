@@ -304,6 +304,9 @@ following options are valid for suites,
 ``--report``
   This is only used by ``--suite`` and when set, invokes a script that sends the test results to the results page when all tests are complete.  Please see :ref:`testreporting` for more information.
 
+``--coverage``
+  When invoked, code coverage diagnostics are generated.  This will modify the build and reduce optimization and generate coverage reports using lcov or codecov tools.  General use is not recommended, this is mainly used as a diagnostic to periodically assess test coverage.  Please see :ref:`codecoverage` for more information.
+
 Please see :ref:`case_options` and :ref:`indtests` for more details about how these options are used.
 
 
@@ -481,13 +484,51 @@ To post results, once a test suite is complete, run ``results.csh`` and
   ./results.csh
   ./report_results.csh
 
-The reporting can also be automated by adding ``--report``
+``report_results.csh`` will run ``results.csh`` by default automatically, but
+we recommmend running it manually first to verify results before publishing
+them.  ``report_results.csh -n`` will turn off automatic running of ``results.csh``.
+
+The reporting can also be automated in a test suite by adding ``--report`` to ``icepack.setup``
 ::
 
   ./icepack.setup --suite base_suite --mach conrad --env cray --testid v01a --report
 
 With ``--report``, the suite will create all the tests, build and submit them,
 wait for all runs to be complete, and run the results and report_results scripts.
+
+.. _codecoverage:
+
+Code Coverage Testing
+------------------------
+
+The ``--coverage`` feature in **icepack.setup** provides a method to diagnose code coverage.
+This argument turns on special compiler flags including reduced optimization and then
+invokes the gcov tool.  Once runs are complete, either lcov or codecov can be used
+to analyze the results.
+This option is currently only available with the gnu compiler and on a few systems
+with modified Macros files.
+
+At the present time, the ``--coverage`` flag invokes the lcov analysis automatically
+by running the **report_lcov.csh** script in the test suite directory.  The output 
+will show up at the `CICE-Consortium code coverage website <https://apcraig.github.io>`__.  To
+use the tool, you should have write permission for that repository.  The lcov tool
+should be run on a full multi-suite test suite, and it can 
+take several hours to process the data once the test runs are complete.  A typical
+instantiation would be
+::
+
+  ./icepack.setup --suite base_suite,travis_suite,quick_suite --mach cheyenne --env gnu --testid cc01 --coverage
+
+Alternatively, codecov analysis can be carried out by manually running the **report_codecov.csh**
+script from the test suite directory, but there are several ongoing problems with this approach and
+it is not generally recommended.  The codecov
+analysis is largely identical to the analysis performed by lcov, codecov just provides a nicer 
+web experience to view the output.
+
+This is a special diagnostic test and is not part of the standard model testing.
+General use is not recommended, this is mainly used as a diagnostic to periodically
+assess test coverage.  
+
 
 .. _testplotting:
 
@@ -542,3 +583,4 @@ This plotting script can be used to plot the following variables:
   - congelation (m)
   - snow-ice (m)
   - initial energy change (:math:`W/m^2`)
+

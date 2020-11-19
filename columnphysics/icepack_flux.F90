@@ -12,6 +12,7 @@
       use icepack_parameters, only: c1, emissivity
       use icepack_warnings, only: warnstr, icepack_warnings_add
       use icepack_warnings, only: icepack_warnings_setabort, icepack_warnings_aborted
+      use icepack_tracers, only: tr_iso
 
       implicit none
       private
@@ -40,6 +41,8 @@
                                Trefn,    Qrefn,      &
                                freshn,   fsaltn,     &
                                fhocnn,   fswthrun,   &
+                               fswthrun_vdr, fswthrun_vdf,&
+                               fswthrun_idr, fswthrun_idf,&
                                strairxT, strairyT,   &  
                                Cdn_atm_ratio,        &
                                fsurf,    fcondtop,   &
@@ -51,11 +54,16 @@
                                Tref,     Qref,       &
                                fresh,    fsalt,      & 
                                fhocn,    fswthru,    &
+                               fswthru_vdr, fswthru_vdf,&
+                               fswthru_idr, fswthru_idf,&
                                melttn, meltsn, meltbn, congeln, snoicen, &
                                meltt,  melts,        &
                                meltb,                &
                                congel,  snoice,      &
-                               Uref,     Urefn       )
+                               Uref,     Urefn,      &
+                               Qref_iso, Qrefn_iso,  &
+                               fiso_ocn, fiso_ocnn,  &
+                               fiso_evap, fiso_evapn)
 
       ! single category fluxes
       real (kind=dbl_kind), intent(in) :: &
@@ -80,6 +88,10 @@
           fsaltn  , & ! salt flux to ocean              (kg/m2/s)
           fhocnn  , & ! actual ocn/ice heat flx         (W/m**2)
           fswthrun, & ! sw radiation through ice bot    (W/m**2)
+          fswthrun_vdr, & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthrun_vdf, & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthrun_idr, & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthrun_idf, & ! nir dif sw radiation through ice bot    (W/m**2)
           melttn  , & ! top ice melt                    (m)
           meltbn  , & ! bottom ice melt                 (m)
           meltsn  , & ! snow melt                       (m)
@@ -116,8 +128,24 @@
           congel  , & ! congelation ice growth          (m)
           snoice      ! snow-ice growth                 (m)
 
+      real (kind=dbl_kind), intent(inout), optional :: &
+          fswthru_vdr , & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthru_vdf , & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthru_idr , & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthru_idf     ! nir dif sw radiation through ice bot    (W/m**2)
+
       real (kind=dbl_kind), optional, intent(inout):: &
           Uref        ! air speed reference level       (m/s)
+
+      real (kind=dbl_kind), optional, dimension(:), intent(inout):: &
+          Qref_iso, & ! isotope air sp hum reference level (kg/kg)
+          fiso_ocn, & ! isotope fluxes to ocean (kg/m2/s)
+          fiso_evap   ! isotope evaporation (kg/m2/s)
+
+      real (kind=dbl_kind), optional, dimension(:), intent(in):: &
+          Qrefn_iso, & ! isotope air sp hum reference level (kg/kg)
+          fiso_ocnn, & ! isotope fluxes to ocean (kg/m2/s)
+          fiso_evapn   ! isotope evaporation (kg/m2/s)
 
       character(len=*),parameter :: subname='(merge_fluxes)'
 
@@ -148,6 +176,19 @@
       Tref       = Tref     + Trefn     * aicen
       Qref       = Qref     + Qrefn     * aicen
 
+      ! Isotopes
+      if (tr_iso) then
+         if (present(Qrefn_iso) .and. present(Qref_iso)) then
+            Qref_iso (:) = Qref_iso (:) + Qrefn_iso (:) * aicen
+         endif
+         if (present(fiso_ocnn) .and. present(fiso_ocn)) then
+            fiso_ocn (:) = fiso_ocn (:) + fiso_ocnn (:) * aicen
+         endif
+         if (present(fiso_evapn) .and. present(fiso_evap)) then
+            fiso_evap(:) = fiso_evap(:) + fiso_evapn(:) * aicen
+         endif
+      endif
+
       ! ocean fluxes
       if (present(Urefn) .and. present(Uref)) then
          Uref = Uref     + Urefn     * aicen
@@ -157,6 +198,14 @@
       fsalt     = fsalt     + fsaltn    * aicen
       fhocn     = fhocn     + fhocnn    * aicen
       fswthru   = fswthru   + fswthrun  * aicen
+      if (present(fswthru_vdr)) &
+         fswthru_vdr   = fswthru_vdr   + fswthrun_vdr  * aicen
+      if (present(fswthru_vdf)) &
+         fswthru_vdf   = fswthru_vdf   + fswthrun_vdf  * aicen
+      if (present(fswthru_idr)) &
+         fswthru_idr   = fswthru_idr   + fswthrun_idr  * aicen
+      if (present(fswthru_idf)) &
+         fswthru_idf   = fswthru_idf   + fswthrun_idf  * aicen
 
       ! ice/snow thickness
 
