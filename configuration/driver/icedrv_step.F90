@@ -6,7 +6,7 @@
 
       module icedrv_step
 
-      use icedrv_constants, only: c0, nu_diag, c4
+      use icedrv_constants, only: c0, nu_diag, c4, kdyn !kdyn added by Pedro as a switch to compute bottom drag in icepack_step_therm1
       use icedrv_kinds
 !      use icedrv_calendar, only: istep1
       use icedrv_forcing, only: ocn_data_type
@@ -17,6 +17,7 @@
       use icepack_intfc, only: icepack_query_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
+      use icedrv_flux, only: uocn, vocn  !Added by Pedro to allow bottom drag calculations in icepack_step_therm1
 
       implicit none
       private
@@ -349,7 +350,9 @@
             dsnown   = dsnown(i,:),                               &
             lmask_n  = lmask_n(i),    lmask_s   = lmask_s(i),     &
             mlt_onset=mlt_onset(i),   frz_onset = frz_onset(i),   &
-            yday = yday,  prescribed_ice = prescribed_ice)
+            yday = yday,  prescribed_ice = prescribed_ice,        &
+            kdyn = kdyn,                                          &
+            uocn = uocn(i), vocn = vocn(i))
 
         if (tr_aero) then
           do n = 1, ncat

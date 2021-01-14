@@ -55,7 +55,7 @@
       use icepack_meltpond_cesm, only: compute_ponds_cesm
       use icepack_meltpond_lvl, only: compute_ponds_lvl
       use icepack_meltpond_topo, only: compute_ponds_topo
-
+   
       implicit none
 
       private
@@ -2113,12 +2113,15 @@
                                     dsnown      , &
                                     lmask_n     , lmask_s     , &
                                     mlt_onset   , frz_onset   , &
-                                    yday        , prescribed_ice)
-
+                                    yday        , prescribed_ice,&
+                                    kdyn,                       &
+                                    uocn, vocn)
+      !use icedrv_flux, only: uocn, vocn
       integer (kind=int_kind), intent(in) :: &
          ncat    , & ! number of thickness categories
          nilyr   , & ! number of ice layers
-         nslyr       ! number of snow layers
+         nslyr   , & ! number of snow layers
+         kdyn        ! added by Pedro as a switch to compute bottom drag in icepack_step_therm1 
 
       real (kind=dbl_kind), intent(in) :: &
          dt          , & ! time step
@@ -2126,7 +2129,9 @@
          vvel        , & ! y-component of velocity (m/s)
          strax       , & ! wind stress components (N/m^2)
          stray       , & ! 
-         yday            ! day of year
+         yday        , & ! day of year
+         uocn        , & ! x-component of ocean velocity (m/s) Added by Pedro
+         vocn            ! y-component of ocean velocity (m/s) Added by Pedro
 
       logical (kind=log_kind), intent(in) :: &
          lmask_n     , & ! northern hemisphere mask
@@ -2350,6 +2355,29 @@
          pond            ! water retained in ponds (m)
 
       character(len=*),parameter :: subname='(icepack_step_therm1)'
+       
+      !!!Pedro stuff 
+      real (kind=dbl_kind), parameter :: &
+         cosw = c1   , & ! cos(ocean turning angle)  ! turning angle = 0
+         sinw = c0       ! sin(ocean turning angle)  ! turning angle = 0
+      real (kind=dbl_kind) :: &
+         vrel, &              ! relative ice-ocean velocity   
+         strocnx, &
+         strocny 
+      vrel = rhow*Cdn_ocn*sqrt((uocn - uvel)**2 + &
+                 (vocn - vvel)**2)  ! m/s
+      vrel = vrel * aice
+      strocnx = vrel*(uocn - uvel)*cosw !&
+                            !- (vocn(4,4,1) - vvel)*sinw*sign(c1,fm(4,4,1))) Coriolis component ignored in vertical applications
+      strocny = vrel*(vocn - vvel)*cosw !&
+                           !+ (uocn(4,4,1) - uvel)*sinw*sign(c1,fm(4,4,1)))  Coriolis component ignored in vertical applications
+      !write(*,*) 'strocnx=',strocnx,'strocny=',strocny
+      if (aice>0.000001) then
+          strocnxT = strocnx / aice
+          strocnyT = strocny / aice
+      end if
+      !write(*,*) 'strocnxT=',strocnxT,'strocnyT=',strocnyT 
+      !!! Pedro stuff end 
 
       !-----------------------------------------------------------------
       ! allocate local optional arguments
