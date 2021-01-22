@@ -25,7 +25,8 @@
          nu_forcing = 14, &          ! unit for forcing file
          nu_open_clos = 15, &        ! unit for SHEBA forcing file
          nu_diag    = ice_stdout, &  ! unit for diagnostic output
-         nu_diag_out = 103, &
+         nu_diag_out = 103, &        !
+         !nu_Limiting_factors_out = 98, &  ! added by Pedro for limiting factor output
          kdyn = 0                    ! added by Pedro as a switch to compute bottom drag in icepack_step_therm1
 
       !-----------------------------------------------------------------

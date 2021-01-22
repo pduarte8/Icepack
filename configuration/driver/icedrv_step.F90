@@ -17,8 +17,10 @@
       use icepack_intfc, only: icepack_query_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
-      use icedrv_flux, only: uocn, vocn  !Added by Pedro to allow bottom drag calculations in icepack_step_therm1
-
+      use icedrv_flux, only: uocn, vocn, strocnxT, strocnyT  !Added by Pedro to allow bottom drag calculations in icepack_step_therm1
+      use icedrv_arrays_column, only: Cdn_ocn
+      use icepack_zbgc_shared, only: Bottom_turb_mix  
+ 
       implicit none
       private
 
@@ -1286,7 +1288,12 @@
                       aice0        = aice0(i),                  &
                       trcrn        = trcrn(i,1:ntrcr,:),        &
                       vsnon_init   = vsnon_init(i,:),           &
-                      skl_bgc      = skl_bgc)
+                      skl_bgc      = skl_bgc,                   &
+                      uocn = uocn(i), vocn = vocn(i),           & 
+                      strocnxT = strocnxT(i),                   &
+                      strocnyT  = strocnyT(i),                  &
+                      Bottom_turb_mix = Bottom_turb_mix,        &
+                      Cdn_ocn = Cdn_ocn(i))
 
 !         call icepack_warnings_flush(nu_diag)
 !         if (icepack_warnings_aborted()) call icedrv_system_abort(i, istep1, subname, &

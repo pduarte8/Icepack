@@ -21,6 +21,8 @@
       use icepack_mushy_physics, only: icepack_mushy_temperature_mush, icepack_mushy_liquid_fraction
       use icepack_therm_shared, only: calculate_Tin_from_qin
 
+      use icepack_parameters, only: ustar_min, fbot_xfer_type, formdrag
+
       implicit none
 
       private
@@ -145,7 +147,11 @@
                                        kperm,    bphi_min,   &
                                        bSin,     brine_sal,  brine_rho,  &
                                        iphin,    ibrine_rho, ibrine_sal, &
-                                       sice_rho, iDin                    )
+                                       sice_rho, iDin, &
+                                       uocn, vocn, & 
+                                       strocnxT, strocnyT, &
+                                       Bottom_turb_mix, &
+                                       Cdn_ocn, congeln, meltbn)
 
       integer (kind=int_kind), intent(in) :: &
          nilyr       , & ! number of ice layers
@@ -155,8 +161,10 @@
          bgrid              ! biology nondimensional vertical grid points
 
       real (kind=dbl_kind), dimension (nblyr+1), intent(in) :: &
-         igrid              ! biology vertical interface points
- 
+         igrid       , & ! biology vertical interface points
+         meltbn      , & ! bottom melt for ice of category n, added by Pedro, NPI
+         congeln         ! congelation growth for ice of category n, added by Pedro, NPI 
+
       real (kind=dbl_kind), dimension (nilyr+1), intent(in) :: &
          cgrid              ! CICE vertical coordinate   
 
@@ -186,7 +194,7 @@
          iphin       , & ! porosity on the igrid 
          ibrine_rho  , & ! brine rho on interface  
          ibrine_sal  , & ! brine sal on interface   
-         iTin            ! Temperature on the igrid (oC)
+         iTin            ! Temperature on the igrid (oC)       
 
       real (kind=dbl_kind), dimension (nblyr+2), &
          intent(inout)  :: &
@@ -223,7 +231,20 @@
      
       real(kind=dbl_kind), parameter :: &
          Smin = p01
-    
+      
+      real (kind=dbl_kind), intent(in) :: &
+         uocn          , &
+         vocn          , &   
+         strocnxT      , &
+         strocnyT      , &
+         Cdn_ocn       
+         
+      logical (kind=log_kind), intent(in) :: &
+         Bottom_turb_mix
+
+      real (kind=dbl_kind) :: &
+         ustar 
+
       character(len=*),parameter :: subname='(compute_microS_mushy)'
 
       !-----------------------------------------------------------------
@@ -289,13 +310,36 @@
       call calculate_drho(nblyr, igrid, bgrid,             &
                           brine_rho,    ibrine_rho, drho)   
       if (icepack_warnings_aborted(subname)) return
-
+      
       do k= 2, nblyr+1
          ikin(k) = k_o*iphin(k)**exp_h 
          iDin(k) = iphin(k)*Dm/hbr_old**2  
          if (hbr_old .GE. Ra_c) &
             iDin(k) = iDin(k) &
-                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2  
+                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2      
+         if ((Bottom_turb_mix).and.(k.EQ.nblyr+1)) then
+            ustar = sqrt (sqrt(strocnxT**2+strocnyT**2)/rhow)
+            !ustar = max (ustar,ustar_min)
+            if (trim(fbot_xfer_type) == 'Cdn_ocn') then
+            ! Note: Cdn_ocn has already been used for calculating ustar 
+            ! (formdrag only) --- David Schroeder (CPOM)
+               iDin(k) = Cdn_ocn * ustar / hbr_old
+            else ! fbot_xfer_type == 'constant'
+            ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
+               if (congeln(k)-meltbn(k).GT.0.0) then
+                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old
+               else
+                  iDin(k) = 0.006_dbl_kind / 35.0 * ustar / hbr_old
+               endif
+            endif
+         else 
+            ikin(k) = k_o*iphin(k)**exp_h 
+            iDin(k) = iphin(k)*Dm/hbr_old**2  
+            if (hbr_old .GE. Ra_c) &
+               iDin(k) = iDin(k) &
+                  + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2  
+            endif
+        
       enddo    ! k
 
       end subroutine compute_microS_mushy

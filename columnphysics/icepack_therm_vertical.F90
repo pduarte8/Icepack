@@ -596,13 +596,16 @@
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
             cpchr = -cp_ocn*rhow*0.006_dbl_kind
          endif
-
+         
          fbot = cpchr * deltaT * ustar ! < 0
+         !write(*,*) 'fbot1= ',fbot
          fbot = max (fbot, frzmlt) ! frzmlt < fbot < 0
+
+         !write(*,*) 'fbot2= ',fbot,' frzmlt= ',frzmlt
             
 !!! uncomment to use all frzmlt for standalone runs
-   !     fbot = min (c0, frzmlt)
-
+         !fbot = min (c0, frzmlt)
+         !write(*,*) 'fbot3= ',fbot  
       !-----------------------------------------------------------------
       ! Compute rside.  See these references:
       !    Maykut and Perovich (1987): JGR, 92, 7032-7044

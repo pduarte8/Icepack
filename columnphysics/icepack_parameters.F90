@@ -154,6 +154,7 @@
          modal_aero   = .false. ,&! if true, use modal aerosal optical properties
                                   ! only for use with tr_aero or tr_zaero
          conserv_check = .false.  ! if true, do conservations checks and abort
+         
 
       character(len=char_len), public :: &
          tfrz_option  = 'mushy'   ! form of ocean freezing temperature
@@ -355,7 +356,8 @@
          t_sk_conv    = 3.0_dbl_kind    , & ! Stefels conversion time (d)
          t_sk_ox      = 10.0_dbl_kind       ! DMS oxidation time (d)
 
-
+      logical (kind=log_kind), public :: &
+         Bottom_turb_mix  = .false.
 !-----------------------------------------------------------------------
 ! Parameters for shortwave redistribution
 !-----------------------------------------------------------------------
@@ -388,7 +390,7 @@
          kice_in, kseaice_in, ksno_in, &
          zref_in, hs_min_in, snowpatch_in, rhosi_in, sk_l_in, &
          saltmax_in, phi_init_in, min_salin_in, salt_loss_in, &
-         min_bgc_in, dSin0_frazil_in, hi_ssl_in, hs_ssl_in, &
+         min_bgc_in, Bottom_turb_mix_in,dSin0_frazil_in, hi_ssl_in, hs_ssl_in, &
          awtvdr_in, awtidr_in, awtvdf_in, awtidf_in, &
          qqqice_in, TTTice_in, qqqocn_in, TTTocn_in, &
          ktherm_in, conduct_in, fbot_xfer_type_in, calc_Tsfc_in, dts_b_in, &
@@ -685,6 +687,8 @@
          sk_l_in,       & ! skeletal layer thickness (m)
          min_bgc_in       ! fraction of ocean bgc concentration in surface melt
 
+      logical (kind=log_kind), intent(in), optional :: & 
+         Bottom_turb_mix_in ! if true do nutrient bottom mix a La McPhee
 !-----------------------------------------------------------------------
 ! Parameters for melt ponds
 !-----------------------------------------------------------------------
@@ -753,6 +757,7 @@
       if (present(min_salin_in)         ) min_salin        = min_salin_in
       if (present(salt_loss_in)         ) salt_loss        = salt_loss_in
       if (present(min_bgc_in)           ) min_bgc          = min_bgc_in
+      if (present(Bottom_turb_mix_in)   ) Bottom_turb_mix  = Bottom_turb_mix_in
       if (present(dSin0_frazil_in)      ) dSin0_frazil     = dSin0_frazil_in
       if (present(hi_ssl_in)            ) hi_ssl           = hi_ssl_in
       if (present(hs_ssl_in)            ) hs_ssl           = hs_ssl_in
@@ -886,7 +891,7 @@
          kice_out, kseaice_out, ksno_out, &
          zref_out, hs_min_out, snowpatch_out, rhosi_out, sk_l_out, &
          saltmax_out, phi_init_out, min_salin_out, salt_loss_out, &
-         min_bgc_out, dSin0_frazil_out, hi_ssl_out, hs_ssl_out, &
+         min_bgc_out, Bottom_turb_mix_out, dSin0_frazil_out, hi_ssl_out, hs_ssl_out, &
          awtvdr_out, awtidr_out, awtvdf_out, awtidf_out, &
          qqqice_out, TTTice_out, qqqocn_out, TTTocn_out, update_ocn_f_out, &
          Lfresh_out, cprho_out, Cp_out, ustar_min_out, a_rapid_mode_out, &
@@ -1192,6 +1197,8 @@
          sk_l_out,       & ! skeletal layer thickness (m)
          min_bgc_out       ! fraction of ocean bgc concentration in surface melt
 
+      logical (kind=log_kind), intent(out), optional :: & 
+         Bottom_turb_mix_out ! if true do nutrient bottom mix a La McPhee 
 !-----------------------------------------------------------------------
 ! Parameters for melt ponds
 !-----------------------------------------------------------------------
@@ -1301,6 +1308,7 @@
       if (present(min_salin_out)         ) min_salin_out    = min_salin
       if (present(salt_loss_out)         ) salt_loss_out    = salt_loss
       if (present(min_bgc_out)           ) min_bgc_out      = min_bgc
+      if (present(Bottom_turb_mix_out)   ) Bottom_turb_mix_out = Bottom_turb_mix
       if (present(dSin0_frazil_out)      ) dSin0_frazil_out = dSin0_frazil
       if (present(hi_ssl_out)            ) hi_ssl_out       = hi_ssl
       if (present(hs_ssl_out)            ) hs_ssl_out       = hs_ssl

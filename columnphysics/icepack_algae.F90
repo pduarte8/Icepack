@@ -54,11 +54,12 @@
       use icepack_zbgc_shared, only: grow_Tdep, fr_graze, mort_pre, mort_Tdep
       use icepack_zbgc_shared, only: f_don, kn_bac, f_don_Am
       use icepack_zbgc_shared, only: f_doc, f_exude, k_bac, R_chl2N, R_C2N
-
+      use icepack_zbgc_shared, only: nu_Limiting_factors_out
       use icepack_warnings, only: warnstr, icepack_warnings_add
       use icepack_warnings, only: icepack_warnings_setabort, icepack_warnings_aborted
 
       use icepack_aerosol, only: update_snow_bgc
+
 
       implicit none
 
@@ -1418,7 +1419,7 @@
                             upNOn,        upNHn,        &
                             Zoo,                        &
                             Nerror,       conserve_N)      
-
+      
       integer (kind=int_kind), intent(in) :: &
          n_doc, n_dic,  n_don, n_fed, n_fep, &
          n_algae    ! number of autotrophic types
@@ -1504,6 +1505,7 @@
          N_lim    , &  ! overall nitrogen species limitation
          Sil_lim  , &  ! overall silicon limitation
          Fe_lim   , &  ! overall iron limitation
+         T_lim    , &  ! overall temperature limitation 
          fr_Nit   , &  ! fraction of local ecological growth as nitrate
          fr_Am    , &  ! fraction of local ecological growth as ammonia
          growmax_N, &  ! maximum growth rate in N currency (mmol/m^3/s)
@@ -1612,6 +1614,8 @@
          Zoo_s_s   , &  ! N Losses due to grazing spillage (mmol/m^3)
          Zoo_s_m   , &  ! N Losses due to algal mortality (mmol/m^3)
          Zoo_s_b        ! N losses due to bacterial recycling of DON (mmol/m^3)
+ 
+      logical itsopen
 
       character(len=*),parameter :: subname='(algal_dyn)'
 
@@ -1745,14 +1749,14 @@
        else
          Iavg_loc = fswthru
        endif
-
+       
        do k = 1, n_algae
           ! With light inhibition ! Maybe include light inhibition for diatoms but phaeocystis
-          L_lim = (c1 - exp(-alpha2max_low(k)*Iavg_loc)) * exp(-beta2max(k)*Iavg_loc)
+          L_lim(k) = (c1 - exp(-alpha2max_low(k)*Iavg_loc)) * exp(-beta2max(k)*Iavg_loc)
 
           ! Without light inhibition
           ! L_lim(k) = (c1 - exp(-alpha2max_low(k)*Iavg_loc))
-
+          
       !-----------------------------------------------------------------------
       ! Nutrient limitation
       !-----------------------------------------------------------------------
@@ -1781,8 +1785,12 @@
       ! but in tests had no effect.
       ! Primary production reverts to SE form, see MBJ below and be careful
       !----------------------------------------------------------------------------
-
-          growmax_N(k) = mu_max(k) / secday * exp(grow_Tdep(k) * dTemp)* Nin(k) *fsal
+          T_lim(k) = exp(grow_Tdep(k) * dTemp)  !Added by Pedro
+          inquire(unit=nu_Limiting_factors_out, opened=itsopen) 
+          if ( itsopen ) then          
+             write(nu_Limiting_factors_out,"(F8.4,F8.4,F8.4,F8.4)") L_lim(k), T_lim(k), N_lim(k), Sil_lim(k)
+          endif
+          growmax_N(k) = mu_max(k) / secday * T_lim(k)* Nin(k) *fsal
           grow_N(k)    = min(L_lim(k), N_lim(k), Sil_lim(k), Fe_lim(k)) * growmax_N(k)
 !         potU_Nit(k)  = Nit_lim(k)* growmax_N(k)
           potU_Am(k)   = Am_lim(k)* growmax_N(k) 

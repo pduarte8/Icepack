@@ -88,7 +88,10 @@
                         0.03_dbl_kind, 0.20_dbl_kind, 0.02_dbl_kind, &
                         0.02_dbl_kind, 0.01_dbl_kind, 0.01_dbl_kind, &
                         0.03_dbl_kind /)
-
+       integer (kind=int_kind), public :: &
+         nu_Limiting_factors_out
+       logical (kind=log_kind), public :: &
+         Limiting_factors_file, Bottom_turb_mix 
       !-----------------------------------------------------------------
       ! skeletal layer biogeochemistry
       !-----------------------------------------------------------------

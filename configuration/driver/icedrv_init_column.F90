@@ -30,6 +30,8 @@
       use icepack_intfc, only: icepack_init_ocean_bio, icepack_load_ocean_bio_array
       use icepack_intfc, only: icepack_init_hbrine
       use icedrv_system, only: icedrv_system_abort
+      use icepack_zbgc_shared, only: nu_Limiting_factors_out, Limiting_factors_file!, &
+                                     !Bottom_turb_mix   
 
       implicit none
 
@@ -366,7 +368,7 @@
       use icedrv_calendar,  only: istep1
       use icedrv_system, only: icedrv_system_abort
       use icedrv_flux, only: sss, nit, amm, sil, dmsp, dms, algalN, &
-          doc, don, dic, fed, fep, zaeros, hum
+          doc, don, dic, fed, fep, zaeros, hum    
       use icedrv_forcing_bgc, only:  get_forcing_bgc
       use icedrv_state, only: trcrn
 
@@ -457,7 +459,6 @@
       !-----------------------------------------------------------------
       ! biogeochemistry initialization
       !-----------------------------------------------------------------
-
       !-----------------------------------------------------------------
       ! Initial Ocean Values if not coupled to the ocean bgc
       !-----------------------------------------------------------------
@@ -647,11 +648,12 @@
           tr_bgc_hum,    tr_aero
  
       integer (kind=int_kind) :: &
-          ktherm
+          ktherm!, nu_Limit_factors_out
 
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-          modal_aero, restore_bgc
+          modal_aero, restore_bgc, & 
+          file_exists  ! Added by Pedro
 
       character (char_len) :: &
           bgc_flux_type
@@ -698,6 +700,9 @@
           ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
           ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
           F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
+      
+      logical (kind=log_kind) :: & 
+         Bottom_turb_mix ! if true do nutrient bottom mix a La McPhee     
 
       real (kind=dbl_kind), dimension(icepack_max_dic) :: &
          dictype
@@ -849,7 +854,8 @@
         zaerotype_dust3    , zaerotype_dust4    , ratio_C2N_diatoms  ,  &
         ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
-        F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
+        F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins ,  &
+        Limiting_factors_file, Bottom_turb_mix ! Added by Pedro
 
       !-----------------------------------------------------------------
       ! query Icepack values
@@ -991,7 +997,8 @@
       F_abs_chl_sp       = 4.0_dbl_kind
       F_abs_chl_phaeo    = 5.0_dbl_kind
       ratio_C2N_proteins = 7.0_dbl_kind  ! ratio of C to N in proteins (mol/mol)       
-
+      Limiting_factors_file = .false.
+      Bottom_turb_mix = .false.
       !-----------------------------------------------------------------
       ! read from input file
       !-----------------------------------------------------------------
@@ -1381,7 +1388,7 @@
       mu_max(1) = mu_max_diatoms
       mu_max(2) = mu_max_sp
       mu_max(3) = mu_max_phaeo
-
+ 
       grow_Tdep(1) = grow_Tdep_diatoms
       grow_Tdep(2) = grow_Tdep_sp
       grow_Tdep(3) = grow_Tdep_phaeo
@@ -1448,6 +1455,17 @@
       zaerotype(5) = zaerotype_dust3
       zaerotype(6) = zaerotype_dust4
 
+      nu_Limiting_factors_out = 98;
+      if (Limiting_factors_file) then
+         inquire(file="Lim_factors.dat", exist=file_exists)
+         if (file_exists) then
+            open(nu_Limiting_factors_out, file = 'Lim_factors.dat', status = 'replace')
+         else
+            open(nu_Limiting_factors_out, file = 'Lim_factors.dat', status = 'new')
+         endif
+         write(nu_Limiting_factors_out,*) 'Light ','Temperature ','Nitrogen ','Si lim '
+      endif 
+
       call icepack_init_zbgc ( &
            R_Si2N_in=R_Si2N, &
            R_S2N_in=R_S2N, R_Fe2C_in=R_Fe2C, R_Fe2N_in=R_Fe2N, R_C2N_in=R_C2N, &
@@ -1468,7 +1486,9 @@
            k_nitrif_in=k_nitrif, t_iron_conv_in=t_iron_conv, &
            max_loss_in=max_loss, max_dfe_doc1_in=max_dfe_doc1, &
            fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, &
-           t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, fsal_in=fsal)
+           t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, fsal_in=fsal, &
+           Limiting_factors_file_in=Limiting_factors_file, &
+           nu_Limiting_factors_out_in=nu_Limiting_factors_out)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)
@@ -1893,7 +1913,8 @@
          write(nu_diag,1005) ' l_sk                      = ', l_sk
          write(nu_diag,1000) ' initbio_frac              = ', initbio_frac
          write(nu_diag,1000) ' frazil_scav               = ', frazil_scav  
-
+         write(nu_diag,1010) ' Limiting factors file     = ', Limiting_factors_file
+         write(nu_diag,1010) ' Bottom turbulent mixing     = ', Bottom_turb_mix
       endif  ! skl_bgc or solve_bgc
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements

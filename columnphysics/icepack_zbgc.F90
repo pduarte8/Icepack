@@ -17,6 +17,7 @@
       use icepack_parameters, only: fr_resp_s, y_sk_DMS, t_sk_conv, t_sk_ox
       use icepack_parameters, only: scale_bgc, ktherm, skl_bgc, solve_zsal
       use icepack_parameters, only: z_tracers, fsal, conserv_check
+      use icepack_parameters, only: Bottom_turb_mix
 
       use icepack_tracers, only: nt_sice, nt_bgc_S, bio_index 
       use icepack_tracers, only: tr_brine, nt_fbri, nt_qice, nt_Tsfc
@@ -36,6 +37,8 @@
       use icepack_zbgc_shared, only: f_exude, k_bac
       use icepack_zbgc_shared, only: tau_ret, tau_rel
       use icepack_zbgc_shared, only: R_C2N, R_CHL2N, f_abs_chl, R_C2N_DON
+      use icepack_zbgc_shared, only: nu_Limiting_factors_out
+      use icepack_zbgc_shared, only: Limiting_factors_file
 
       use icepack_warnings, only: warnstr, icepack_warnings_add
       use icepack_warnings, only: icepack_warnings_setabort, icepack_warnings_aborted
@@ -674,7 +677,8 @@
                  fr_resp_in, algal_vel_in, R_dFe2dust_in, dustFe_sol_in, T_max_in, &
                  op_dep_min_in, fr_graze_s_in, fr_graze_e_in, fr_mort2min_in, fr_dFe_in, &
                  k_nitrif_in, t_iron_conv_in, max_loss_in, max_dfe_doc1_in, &
-                 fr_resp_s_in, y_sk_DMS_in, t_sk_conv_in, t_sk_ox_in, fsal_in)
+                 fr_resp_s_in, y_sk_DMS_in, t_sk_conv_in, t_sk_ox_in, fsal_in, &
+                 Limiting_factors_file_in,nu_Limiting_factors_out_in, Bottom_turb_mix_in)
 
       real (kind=dbl_kind), optional :: R_C2N_in(:)        ! algal C to N (mole/mole)
       real (kind=dbl_kind), optional :: R_chl2N_in(:)      ! 3 algal chlorophyll to N (mg/mmol)
@@ -734,6 +738,9 @@
       real (kind=dbl_kind), optional :: tau_ret_in(:)         ! retention timescale  (s), mobile to stationary phase
       real (kind=dbl_kind), optional :: tau_rel_in(:)         ! release timescale    (s), stationary to mobile phase
 
+      logical (kind=log_kind), optional :: Limiting_factors_file_in 
+      logical (kind=log_kind), optional :: Bottom_turb_mix_in
+      integer (kind=int_kind), optional :: nu_Limiting_factors_out_in
 !autodocument_end
 
       character(len=*),parameter :: subname='(icepack_init_zbgc)'
@@ -796,8 +803,16 @@
       if (present(zbgc_init_frac_in))  zbgc_init_frac(:)  =  zbgc_init_frac_in(:)
       if (present(tau_ret_in)) tau_ret(:) = tau_ret_in(:)
       if (present(tau_rel_in)) tau_rel(:) = tau_rel_in(:)
+      
+      if (present(Limiting_factors_file_in)) &
+                  Limiting_factors_file = Limiting_factors_file_in
+       
+      if (present(nu_Limiting_factors_out_in)) &
+                  nu_Limiting_factors_out = nu_Limiting_factors_out_in
 
-
+      if (present(Bottom_turb_mix_in)) &
+                  Bottom_turb_mix = Bottom_turb_mix_in 
+   
       end subroutine icepack_init_zbgc
 
 !=======================================================================
@@ -820,7 +835,11 @@
                            sst, sss, fsnow, meltsn, &
                            hin_old, flux_bio, flux_bio_atm, &
                            aicen_init, vicen_init, aicen, vicen, vsnon, &
-                           aice0, trcrn, vsnon_init, skl_bgc)
+                           aice0, trcrn, vsnon_init, skl_bgc, &
+                           uocn, vocn, & 
+                           strocnxT, strocnyT, &
+                           Bottom_turb_mix, &
+                           Cdn_ocn)
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -851,12 +870,22 @@
          ice_bio_net   , &  ! depth integrated tracer (mmol/m^2) 
          snow_bio_net  , &  ! depth integrated snow tracer (mmol/m^2) 
          flux_bio     ! all bio fluxes to ocean
+ 
+      real (kind=dbl_kind), intent(in) :: &
+         uocn          , &
+         vocn          , &   
+         strocnxT      , &
+         strocnyT      , &
+         Cdn_ocn
 
       logical (kind=log_kind), dimension (:), intent(inout) :: &
          first_ice      ! distinguishes ice that disappears (e.g. melts)
                         ! and reappears (e.g. transport) in a grid cell
                         ! during a single time step from ice that was
                         ! there the entire time step (true until ice forms)
+
+      logical (kind=log_kind), intent(in) :: &
+         Bottom_turb_mix
 
       real (kind=dbl_kind), dimension (:,:), intent(inout) :: &
          Zoo            , & ! N losses accumulated in timestep (ie. zooplankton/bacteria)
@@ -1013,10 +1042,11 @@
                                 trcrn(1:ntrcr,n), hin_old(n),  hbr_old,           &
                                 sss,              sst,         bTiz(:,n),         &
                                 iTin,             bphi(:,n),   kavg,              &
-                                bphi_o,           Rayleigh_criteria, &
+                                bphi_o,           Rayleigh_criteria,              &
                                 first_ice(n),     bSin,        brine_sal,         &
                                 brine_rho,        iphin,       ibrine_rho,        &
                                 ibrine_sal,       sice_rho(n), sloss)
+
                   if (icepack_warnings_aborted(subname)) return
                else     
 
@@ -1026,15 +1056,19 @@
 
                   iDi(:,n) = c0
 
-                  call compute_microS_mushy (nilyr,         nblyr,       &
+                  call compute_microS_mushy (nilyr,         nblyr,            &
                                    bgrid,         cgrid,         igrid,       &
                                    trcrn(:,n),    hin_old(n),    hbr_old,     &
                                    sss,           sst,           bTiz(:,n),   & 
                                    iTin(:),       bphi(:,n),     kavg,        &
-                                   bphi_o,        bSin(:),     &
+                                   bphi_o,        bSin(:),                    &
                                    brine_sal(:),  brine_rho(:),  iphin(:),    &
                                    ibrine_rho(:), ibrine_sal(:), sice_rho(n), &
-                                   iDi(:,n)       )
+                                   iDi(:,n),                                  &
+                                   uocn, vocn,                                & 
+                                   strocnxT, strocnyT,                        &
+                                   Bottom_turb_mix,                           &
+                                   Cdn_ocn, congeln(:), meltbn(:)       )
                   if (icepack_warnings_aborted(subname)) return
 
                endif ! solve_zsal  
@@ -1321,10 +1355,12 @@
          CToN_DON(1) = R_C2N_DON(1)
        endif
 
-       amm  = c1 ! ISPOL < 1 mmol/m^3 
+       !amm  = c1 ! ISPOL < 1 mmol/m^3 
+       amm = 0.23
        dmsp = p1  
        dms  = p1    
-       algalN(1) = c1  !0.0026_dbl_kind ! ISPOL, Lannuzel 2013(pennate) 
+       !algalN(1) = c1  !0.0026_dbl_kind ! ISPOL, Lannuzel 2013(pennate) 
+       algalN(1) = 0.0011_dbl_kind  
        algalN(2) = 0.0057_dbl_kind ! ISPOL, Lannuzel 2013(small plankton)
        algalN(3) = 0.0027_dbl_kind ! ISPOL, Lannuzel 2013(Phaeocystis)
                                      ! 0.024_dbl_kind ! 5% of 1 mgchl/m^3 
