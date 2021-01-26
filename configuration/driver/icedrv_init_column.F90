@@ -1488,7 +1488,9 @@
            fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, &
            t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, fsal_in=fsal, &
            Limiting_factors_file_in=Limiting_factors_file, &
-           nu_Limiting_factors_out_in=nu_Limiting_factors_out)
+           nu_Limiting_factors_out_in=nu_Limiting_factors_out, &
+           Bottom_turb_mix_in = Bottom_turb_mix)
+
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
           file=__FILE__, line=__LINE__)

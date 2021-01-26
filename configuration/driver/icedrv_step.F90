@@ -19,7 +19,7 @@
       use icepack_intfc, only: icepack_query_parameters
       use icedrv_flux, only: uocn, vocn, strocnxT, strocnyT  !Added by Pedro to allow bottom drag calculations in icepack_step_therm1
       use icedrv_arrays_column, only: Cdn_ocn
-      use icepack_zbgc_shared, only: Bottom_turb_mix  
+      !use icepack_zbgc_shared, only: Bottom_turb_mix  
  
       implicit none
       private
@@ -1163,11 +1163,13 @@
          skl_bgc, tr_brine, tr_zaero
 
       character(len=*), parameter :: subname='(biogeochemistry)'
-
+   
+      logical (kind=log_kind) :: &
+         Bottom_turb_mix
       !-----------------------------------------------------------------
       ! query icepack values
       !-----------------------------------------------------------------
-
+      call icepack_query_parameters(Bottom_turb_mix_out=Bottom_turb_mix)   
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call icedrv_system_abort(string=subname, &
