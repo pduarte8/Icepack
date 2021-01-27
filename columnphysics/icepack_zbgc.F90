@@ -1068,7 +1068,7 @@
                                    uocn, vocn,                                & 
                                    strocnxT, strocnyT,                        &
                                    Bottom_turb_mix,                           &
-                                   Cdn_ocn, congeln(:), meltbn(:)       )
+                                   Cdn_ocn, congeln(n), meltbn(n)       )
                   if (icepack_warnings_aborted(subname)) return
 
                endif ! solve_zsal  

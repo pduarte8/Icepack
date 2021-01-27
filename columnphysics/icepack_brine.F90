@@ -161,9 +161,8 @@
          bgrid              ! biology nondimensional vertical grid points
 
       real (kind=dbl_kind), dimension (nblyr+1), intent(in) :: &
-         igrid       , & ! biology vertical interface points
-         meltbn      , & ! bottom melt for ice of category n, added by Pedro, NPI
-         congeln         ! congelation growth for ice of category n, added by Pedro, NPI 
+         igrid          ! biology vertical interface points
+         
 
       real (kind=dbl_kind), dimension (nilyr+1), intent(in) :: &
          cgrid              ! CICE vertical coordinate   
@@ -237,7 +236,9 @@
          vocn          , &   
          strocnxT      , &
          strocnyT      , &
-         Cdn_ocn       
+         Cdn_ocn       , &
+         meltbn        , & ! bottom melt for ice of category n, added by Pedro, NPI
+         congeln           ! congelation growth for ice of category n, added by Pedro, NPI 
          
       logical (kind=log_kind), intent(in) :: &
          Bottom_turb_mix
@@ -326,10 +327,12 @@
                iDin(k) = Cdn_ocn * ustar / hbr_old
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
-               if (congeln(k)-meltbn(k).GT.0.0) then
+               if (congeln-meltbn.GT.0.0) then
                   iDin(k) = 0.006_dbl_kind * ustar / hbr_old
                else
-                  iDin(k) = 0.006_dbl_kind / 35.0 * ustar / hbr_old
+                  !iDin(k) = 0.006_dbl_kind / 35.0_dbl_kind * ustar / hbr_old
+                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old 
+                  !iDin(k) = 0.006_dbl_kind * ustar / hbr_old   
                endif
             endif
          else 
