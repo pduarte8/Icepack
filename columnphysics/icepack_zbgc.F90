@@ -1361,6 +1361,8 @@
        dms  = p1    
        !algalN(1) = c1  !0.0026_dbl_kind ! ISPOL, Lannuzel 2013(pennate) 
        algalN(1) = 0.0011_dbl_kind  
+       !algalN(1) = 0.00037_dbl_kind   
+       !algalN(1) = c0 
        algalN(2) = 0.0057_dbl_kind ! ISPOL, Lannuzel 2013(small plankton)
        algalN(3) = 0.0027_dbl_kind ! ISPOL, Lannuzel 2013(Phaeocystis)
                                      ! 0.024_dbl_kind ! 5% of 1 mgchl/m^3 

@@ -2367,6 +2367,7 @@
          vrel, &              ! relative ice-ocean velocity   
          strocnx, &
          strocny 
+      if (kdyn.eq.0) then
       vrel = rhow*Cdn_ocn*sqrt((uocn - uvel)**2 + &
                  (vocn - vvel)**2)  ! m/s
       vrel = vrel * aice
@@ -2380,6 +2381,7 @@
           strocnyT = strocny / aice
       end if
       !write(*,*) 'strocnxT=',strocnxT,'strocnyT=',strocnyT 
+      end if
       !!! Pedro stuff end 
 
       !-----------------------------------------------------------------
