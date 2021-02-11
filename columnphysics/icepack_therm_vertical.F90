@@ -2124,7 +2124,7 @@
          ncat    , & ! number of thickness categories
          nilyr   , & ! number of ice layers
          nslyr   , & ! number of snow layers
-         kdyn        ! added by Pedro as a switch to compute bottom drag in icepack_step_therm1 
+         kdyn        ! added by Pedro Duarte (NPI) as a switch to compute bottom drag in icepack_step_therm1 
 
       real (kind=dbl_kind), intent(in) :: &
          dt          , & ! time step
@@ -2133,8 +2133,8 @@
          strax       , & ! wind stress components (N/m^2)
          stray       , & ! 
          yday        , & ! day of year
-         uocn        , & ! x-component of ocean velocity (m/s) Added by Pedro
-         vocn            ! y-component of ocean velocity (m/s) Added by Pedro
+         uocn        , & ! x-component of ocean velocity (m/s) Added by Pedro Duarte (NPI)
+         vocn            ! y-component of ocean velocity (m/s) Added by Pedro Duarte (NPI)
 
       logical (kind=log_kind), intent(in) :: &
          lmask_n     , & ! northern hemisphere mask
@@ -2359,7 +2359,7 @@
 
       character(len=*),parameter :: subname='(icepack_step_therm1)'
        
-      !!!Pedro stuff 
+      !!!Pedro Duarte (NPI) stuff 
       real (kind=dbl_kind), parameter :: &
          cosw = c1   , & ! cos(ocean turning angle)  ! turning angle = 0
          sinw = c0       ! sin(ocean turning angle)  ! turning angle = 0
@@ -2382,7 +2382,7 @@
       end if
       !write(*,*) 'strocnxT=',strocnxT,'strocnyT=',strocnyT 
       end if
-      !!! Pedro stuff end 
+      !!! Pedro Duarte (NPI) stuff end 
 
       !-----------------------------------------------------------------
       ! allocate local optional arguments

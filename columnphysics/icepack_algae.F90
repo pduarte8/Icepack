@@ -1785,7 +1785,7 @@
       ! but in tests had no effect.
       ! Primary production reverts to SE form, see MBJ below and be careful
       !----------------------------------------------------------------------------
-          T_lim(k) = exp(grow_Tdep(k) * dTemp)  !Added by Pedro
+          T_lim(k) = exp(grow_Tdep(k) * dTemp)  !Added by Pedro Duarte (NPI)
           inquire(unit=nu_Limiting_factors_out, opened=itsopen) 
           if ( itsopen ) then          
              write(nu_Limiting_factors_out,"(F8.4,F8.4,F8.4,F8.4)") L_lim(k), T_lim(k), N_lim(k), Sil_lim(k)

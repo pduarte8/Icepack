@@ -6,7 +6,7 @@
 
       module icedrv_step
 
-      use icedrv_constants, only: c0, nu_diag, c4, kdyn !kdyn added by Pedro as a switch to compute bottom drag in icepack_step_therm1
+      use icedrv_constants, only: c0, nu_diag, c4, kdyn !kdyn added by Pedro Duarte (NPI) as a switch to compute bottom drag in icepack_step_therm1
       use icedrv_kinds
 !      use icedrv_calendar, only: istep1
       use icedrv_forcing, only: ocn_data_type
@@ -17,7 +17,7 @@
       use icepack_intfc, only: icepack_query_tracer_indices
       use icepack_intfc, only: icepack_query_tracer_sizes
       use icepack_intfc, only: icepack_query_parameters
-      use icedrv_flux, only: uocn, vocn, strocnxT, strocnyT  !Added by Pedro to allow bottom drag calculations in icepack_step_therm1
+      use icedrv_flux, only: uocn, vocn, strocnxT, strocnyT  !Added by Pedro Duarte (NPI) to allow bottom drag calculations in icepack_step_therm1
       use icedrv_arrays_column, only: Cdn_ocn
       !use icepack_zbgc_shared, only: Bottom_turb_mix  
  

@@ -237,8 +237,8 @@
          strocnxT      , &
          strocnyT      , &
          Cdn_ocn       , &
-         meltbn        , & ! bottom melt for ice of category n, added by Pedro, NPI
-         congeln           ! congelation growth for ice of category n, added by Pedro, NPI 
+         meltbn        , & ! bottom melt for ice of category n, added by Pedro Duarte (NPI
+         congeln           ! congelation growth for ice of category n, added by Pedro Duarte (NPI) 
          
       logical (kind=log_kind), intent(in) :: &
          Bottom_turb_mix

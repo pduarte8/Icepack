@@ -653,7 +653,7 @@
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
           modal_aero, restore_bgc, & 
-          file_exists  ! Added by Pedro
+          file_exists  ! Added by Pedro Duarte (NPI)
 
       character (char_len) :: &
           bgc_flux_type
@@ -855,7 +855,7 @@
         ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
         F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins ,  &
-        Limiting_factors_file, Bottom_turb_mix ! Added by Pedro
+        Limiting_factors_file, Bottom_turb_mix ! Added by Pedro Duarte (NPI)
 
       !-----------------------------------------------------------------
       ! query Icepack values
