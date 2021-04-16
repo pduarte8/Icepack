@@ -982,9 +982,9 @@
                call icepack_warnings_add(warnstr)
                write(warnstr,*) subname, 'Tmin =', Tmin
                call icepack_warnings_add(warnstr)
-               call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
+               !call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
                call icepack_warnings_add(subname//" init_vertical_profile: Starting thermo, T < Tmin, layer" ) 
-               return
+               !return
             endif
          endif                  ! tice_low
 
