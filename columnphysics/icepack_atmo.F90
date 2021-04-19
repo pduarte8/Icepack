@@ -576,8 +576,12 @@
 
       real (kind=dbl_kind), parameter :: & 
                                       ! [,] = range of values that can be tested 
-         csw       = 0.002_dbl_kind ,&! ice-ocn drag coefficient [0.0005,0.005]
-         csa       = 0.0005_dbl_kind,&! ice-air drag coefficient [0.0001,0.001] 
+         csw       = 0.0005_dbl_kind ,&! ice-ocn drag coefficient [0.0005,0.005] 
+         !Changed from 0.002 after Schroder, D., Feltham, D. L., Tsamados, M., Ridout, A., and Tilling, R.: 
+         !New insight from CryoSat-2 sea ice thickness for sea ice modelling, Cryosphere, 13, 125-139, 10.5194/tc-13-125-2019, 2019. 
+         csa       = 0.001_dbl_kind,&! ice-air drag coefficient [0.0001,0.001] 
+         !Changed from 0.0005 after Schroder, D., Feltham, D. L., Tsamados, M., Ridout, A., and Tilling, R.: 
+         !New insight from CryoSat-2 sea ice thickness for sea ice modelling, Cryosphere, 13, 125-139, 10.5194/tc-13-125-2019, 2019. 
          mrdg      = c20            ,&! screening effect see Lu2011 [5,50]
          mrdgo     = c10            ,&! screening effect see Lu2011 [5,50]
          beta      = p5             ,&! power exponent appearing in astar and 
@@ -590,8 +594,12 @@
                                       ! geometrical parameter [0,1]
          cpa       = p2             ,&! Eq. 16 ratio of local form drag over 
                                       ! geometrical parameter [0,1]
-         cra       = p2             ,&! Eq. 10 local form drag coefficient [0,1]
-         crw       = p2             ,&! Eq. 11 local form drag coefficient [0,1]
+         cra       = 0.1_dbl_kind   ,&! Eq. 10 local form drag coefficient [0,1]
+         !Changed from p2 after Schroder, D., Feltham, D. L., Tsamados, M., Ridout, A., and Tilling, R.: 
+         !New insight from CryoSat-2 sea ice thickness for sea ice modelling, Cryosphere, 13, 125-139, 10.5194/tc-13-125-2019, 2019. 
+         crw       = 0.5_dbl_kind    ,&! Eq. 11 local form drag coefficient [0,1] 
+         !Changed from p2 after Schroder, D., Feltham, D. L., Tsamados, M., Ridout, A., and Tilling, R.: 
+         !New insight from CryoSat-2 sea ice thickness for sea ice modelling, Cryosphere, 13, 125-139, 10.5194/tc-13-125-2019, 2019. 
          sl        = 22._dbl_kind   ,&! Sheltering parameter Lupkes2012 [10,30]
          lpmin     = 2.26_dbl_kind  ,&! min pond length (m) see Eq. 17 [1,10]
          lpmax     = 24.63_dbl_kind ,&! max pond length (m) see Eq. 17 [10,100]
