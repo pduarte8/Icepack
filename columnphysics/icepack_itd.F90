@@ -898,7 +898,7 @@
 
       if (limit_aice) then  ! check for aice out of bounds
          if (aice > c1+puny .or. aice < -puny) then
-            call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
+            !call icepack_warnings_setabort(.true.,__FILE__,__LINE__)
             call icepack_warnings_add(subname//' aggregate ice area out of bounds')
             write(warnstr,*) subname, 'aice:', aice
             call icepack_warnings_add(warnstr)
@@ -906,7 +906,7 @@
                write(warnstr,*) subname, 'n, aicen:', n, aicen(n)
                call icepack_warnings_add(warnstr)
             enddo
-            return
+            !return
          endif
       endif                     ! limit_aice
 
