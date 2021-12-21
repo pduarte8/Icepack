@@ -314,35 +314,41 @@
       
       do k= 2, nblyr+1
          ikin(k) = k_o*iphin(k)**exp_h 
-         iDin(k) = iphin(k)*Dm/hbr_old**2  
-         if (hbr_old .GE. Ra_c) &
-            iDin(k) = iDin(k) &
-                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2      
+         !if (k.eq.nblyr+1) then
+            !iDin(k) = c1*Dm/hbr_old**2     
+         !else
+            iDin(k) = iphin(k)*Dm/hbr_old**2
+         !end if  
+         if (k.eq.nblyr+1) then 
+           WRITE(*,*) 'iphin= ',iphin(k)
+         endif     
          if ((Bottom_turb_mix).and.(k.EQ.nblyr+1)) then
             ustar = sqrt (sqrt(strocnxT**2+strocnyT**2)/rhow)
             !ustar = max (ustar,ustar_min)
             if (trim(fbot_xfer_type) == 'Cdn_ocn') then
             ! Note: Cdn_ocn has already been used for calculating ustar 
             ! (formdrag only) --- David Schroeder (CPOM)
-               iDin(k) = Cdn_ocn * ustar / hbr_old
+               iDin(k) = Cdn_ocn * ustar / hbr_old * iphin(k)
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
                if (congeln-meltbn.GT.0.0) then
-                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old
+                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old * iphin(k)
                else
                   !iDin(k) = 0.006_dbl_kind / 35.0_dbl_kind * ustar / hbr_old
-                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old 
+                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old * iphin(k)
                   !iDin(k) = 0.006_dbl_kind * ustar / hbr_old   
                endif
             endif
-         else 
-            ikin(k) = k_o*iphin(k)**exp_h 
-            iDin(k) = iphin(k)*Dm/hbr_old**2  
-            if (hbr_old .GE. Ra_c) &
-               iDin(k) = iDin(k) &
-                  + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2  
-            endif
-        
+         !else 
+         !   ikin(k) = k_o*iphin(k)**exp_h 
+         !   iDin(k) = iphin(k)*Dm/hbr_old**2  
+         !   if (hbr_old .GE. Ra_c) &
+         !      iDin(k) = iDin(k) &
+         !         + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2  
+         endif
+         if (hbr_old .GE. Ra_c) &
+            iDin(k) = iDin(k) &
+                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2 
       enddo    ! k
 
       end subroutine compute_microS_mushy
