@@ -328,14 +328,14 @@
             if (trim(fbot_xfer_type) == 'Cdn_ocn') then
             ! Note: Cdn_ocn has already been used for calculating ustar 
             ! (formdrag only) --- David Schroeder (CPOM)
-               iDin(k) = Cdn_ocn * ustar / hbr_old * iphin(k)
+               iDin(k) = Cdn_ocn * ustar / hbr_old 
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
                if (congeln-meltbn.GT.0.0) then
-                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old * iphin(k)
+                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old 
                else
                   !iDin(k) = 0.006_dbl_kind / 35.0_dbl_kind * ustar / hbr_old
-                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old * iphin(k)
+                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old 
                   !iDin(k) = 0.006_dbl_kind * ustar / hbr_old   
                endif
             endif
