@@ -348,8 +348,8 @@
                iDin(k) = Cdn_ocn * ustar / hbr_old 
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
-               weight1 = 1.0_dbl_kind
-               weight2 = 0.0_dbl_kind
+               !weight1 = 0.5_dbl_kind
+               !weight2 = 0.5_dbl_kind
 
                if (congeln-meltbn.GT.0.0) then
                   iDin(k) = weight1*iDin(k) + & 

@@ -57,7 +57,7 @@
          p666 = c2/c3, &
          spval_const= -1.0e36_dbl_kind, &
          viscos  = 2.1e-6_dbl_kind, & ! kinematic viscosity (m^2/s)
-         h_iceruf  = 0.6e-3_dbl_kind !0.6e-3 - 0.18_dbl_kind  (m)
+         h_iceruf  = 0.001_dbl_kind !0.6e-3 - 0.18_dbl_kind  (m)
       real (kind=dbl_kind), public :: &
          secday = 86400.0_dbl_kind ,&! seconds in calendar day
          puny   = 1.0e-11_dbl_kind, &

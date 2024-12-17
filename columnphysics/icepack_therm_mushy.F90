@@ -3283,7 +3283,7 @@ contains
 
        ! negative freeboard times ocean density
        freeboard_density = max(ice_mass + hsn * rhos - hin * rho_ocn, c0)
-
+       !freeboard_density = c0 !Pedro temporary change to prevent snowice formation 
        ! check if have flooded ice
        if (freeboard_density > c0) then
 
