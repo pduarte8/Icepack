@@ -17,7 +17,7 @@
       use icepack_parameters, only: fr_resp_s, y_sk_DMS, t_sk_conv, t_sk_ox
       use icepack_parameters, only: scale_bgc, ktherm, skl_bgc, solve_zsal
       use icepack_parameters, only: z_tracers, fsal, conserv_check
-      use icepack_parameters, only: Bottom_turb_mix
+      use icepack_parameters, only: Bottom_turb_mix, h_iceruf !Giulia
 
       use icepack_tracers, only: nt_sice, nt_bgc_S, bio_index 
       use icepack_tracers, only: tr_brine, nt_fbri, nt_qice, nt_Tsfc
@@ -678,7 +678,8 @@
                  op_dep_min_in, fr_graze_s_in, fr_graze_e_in, fr_mort2min_in, fr_dFe_in, &
                  k_nitrif_in, t_iron_conv_in, max_loss_in, max_dfe_doc1_in, &
                  fr_resp_s_in, y_sk_DMS_in, t_sk_conv_in, t_sk_ox_in, fsal_in, &
-                 Limiting_factors_file_in,nu_Limiting_factors_out_in, Bottom_turb_mix_in)
+                 Limiting_factors_file_in,nu_Limiting_factors_out_in, Bottom_turb_mix_in,&
+                 h_iceruf_in)
 
       real (kind=dbl_kind), optional :: R_C2N_in(:)        ! algal C to N (mole/mole)
       real (kind=dbl_kind), optional :: R_chl2N_in(:)      ! 3 algal chlorophyll to N (mg/mmol)
@@ -737,6 +738,7 @@
       real (kind=dbl_kind), optional :: zbgc_init_frac_in(:)  ! fraction of ocean tracer  concentration in new ice
       real (kind=dbl_kind), optional :: tau_ret_in(:)         ! retention timescale  (s), mobile to stationary phase
       real (kind=dbl_kind), optional :: tau_rel_in(:)         ! release timescale    (s), stationary to mobile phase
+      real (kind=dbl_kind), optional :: h_iceruf_in           ! ice roughness used to calculate turbulent exchange of nutrients
 
       logical (kind=log_kind), optional :: Limiting_factors_file_in 
       logical (kind=log_kind), optional :: Bottom_turb_mix_in
@@ -812,7 +814,10 @@
 
       if (present(Bottom_turb_mix_in)) &
                   Bottom_turb_mix = Bottom_turb_mix_in 
-   
+  
+      if (present(h_iceruf_in))     h_iceruf  = h_iceruf_in
+    
+          
       end subroutine icepack_init_zbgc
 
 !=======================================================================
@@ -1359,12 +1364,11 @@
        amm = 0.23
        dmsp = p1  
        dms  = p1    
-       algalN(1) = c1  !0.0026_dbl_kind ! ISPOL, Lannuzel 2013(pennate) 
-       !algalN(1) = 0.0011_dbl_kind  
+       !algalN(1) = c1  !0.0026_dbl_kind ! ISPOL, Lannuzel 2013(pennate) 
+       algalN(1) = 0.0011_dbl_kind  
        !algalN(1) = 0.00037_dbl_kind   
        !algalN(1) = c0 
-       !algalN(2) = 0.0057_dbl_kind ! ISPOL, Lannuzel 2013(small plankton)
-       algalN(2) = c1
+       algalN(2) = 0.0057_dbl_kind ! ISPOL, Lannuzel 2013(small plankton)
        algalN(3) = 0.0027_dbl_kind ! ISPOL, Lannuzel 2013(Phaeocystis)
                                      ! 0.024_dbl_kind ! 5% of 1 mgchl/m^3 
        doc(1) = 16.2_dbl_kind ! 18% saccharides

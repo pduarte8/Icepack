@@ -1068,40 +1068,18 @@
          C_top(m)   = in_init_cons(1,m)*trcrn(nt_zbgc_frac+m-1)!mobile fraction
          source(m)  = abs(zbgc_snow(m) + zbgc_atm(m) + dust_Fe(m))
          dhflood  = max(c0,-dh_direct)                              ! ocean water flooding surface
-           
+
          if (dhtop+darcyV/bphin_N(1)*dt < -puny) then !snow/top ice melt
              C_top(m) = (zbgc_snow(m)+zbgc_atm(m) + dust_Fe(m))/abs(dhtop &
-                        + darcyV/bphin_N(1)*dt + puny)*hbri_old   
-             WRITE(*,*) 'Melting'   
-             if (dhflood+darcyV/bphin_N(1)*dt >= puny.and. &
+                        + darcyV/bphin_N(1)*dt + puny)*hbri_old    
+         elseif (dhtop+darcyV/bphin_N(1)*dt >= -puny .and. &
                         abs((zbgc_snow(m)+zbgc_atm(m) + dust_Fe(m)) + &
                         ocean_bio(m)*bphin_N(1)*dhflood) >  puny) then
               atm_add_cons(m) =  abs(zbgc_snow(m) + zbgc_atm(m)+ dust_Fe(m)) + &
-                                      ocean_bio(m)*bphin_N(1)*dhflood
-              WRITE(*,*) 'Flooding!!!!!' 
-             endif     
+                                      ocean_bio(m)*bphin_N(1)*dhflood      
          else   ! only positive fluxes 
               atm_add_cons(m) =  abs(zbgc_snow(m) + zbgc_atm(m)+ dust_Fe(m))
-              WRITE(*,*) 'Else'
          endif
-
-         !Pedro comments start
-
-         if (dhflood.GT.puny) then
-            WRITE(*,*) 'dhflood= ',dhflood
-            WRITE(*,*) 'm= ',m,' ocean_bio= ',ocean_bio(m)
-            WRITE(*,*) 'atm_add_cons= ',atm_add_cons(m)
-            WRITE(*,*) 'C_top= ',C_top(m)
-            WRITE(*,*) 'abs(dhtop)+darcyV/bphin_N(1)*dt ',&
-                        abs(dhtop)+darcyV/bphin_N(1)*dt
-            WRITE(*,*) '(zbgc_snow(m)+zbgc_atm(m) + dust_Fe(m))',&
-                        (zbgc_snow(m)+zbgc_atm(m) + dust_Fe(m))    
-            WRITE(*,*) 'ocean_bio(m)*bphin_N(1)*dhflood ',&
-                        ocean_bio(m)*bphin_N(1)*dhflood 
-            WRITE(*,*) 'puny= ',puny
-            WRITE(*,*) 'bphin_N= ',bphin_N(1),bphin_N(nblyr+1)
-         endif
-
 
          C_bot(m) = ocean_bio(m)*hbri_old*iphin_N(nblyr+1)            
 

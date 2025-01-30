@@ -11,6 +11,7 @@
       use icepack_parameters, only: gravit, rhoi, rhow, rhos, depressT
       use icepack_parameters, only: salt_loss, min_salin, rhosi
       use icepack_parameters, only: dts_b, l_sk
+      use icepack_parameters, only: icepack_write_parameters
       use icepack_tracers, only: ntrcr, nt_qice, nt_sice, nt_bgc_S 
       use icepack_tracers, only: nt_Tsfc
       use icepack_zbgc_shared, only: k_o, exp_h, Dm, Ra_c, viscos_dynamic, thinS
@@ -152,6 +153,8 @@
                                        strocnxT, strocnyT, &
                                        Bottom_turb_mix, &
                                        Cdn_ocn, congeln, meltbn)
+
+!      integer, intent(in) :: iounit
 
       integer (kind=int_kind), intent(in) :: &
          nilyr       , & ! number of ice layers
@@ -315,6 +318,9 @@
                           brine_rho,    ibrine_rho, drho)   
       if (icepack_warnings_aborted(subname)) return
       
+!      call icepack_write_parameters(iounit)
+
+!      write(iounit, *) 'check ice roughness', h_iceruf
       do k= 2, nblyr+1
          ikin(k) = k_o*iphin(k)**exp_h 
          iDin(k) = iphin(k)*Dm/hbr_old**2
@@ -330,10 +336,10 @@
                weight2 = 0.0_dbl_kind
             else
                if ((Rstar.gt.5.0_dbl_kind).and.(Rstar.le.70.0_dbl_kind)) then
-                  weight1 = MIN(1.0_dbl_kind-1.0_dbl_kind / &
+                  weight1 = MAX(1.0_dbl_kind-1.0_dbl_kind / &
                                 (70.0_dbl_kind-5.0_dbl_kind)*(Rstar-5.0_dbl_kind),&
                                 0.0_dbl_kind)
-                  weight2 = MAX(1.0_dbl_kind / &
+                  weight2 = MIN(1.0_dbl_kind / &
                                 (70.0_dbl_kind-5.0_dbl_kind)*(Rstar-5.0_dbl_kind),&
                                 1.0_dbl_kind)
                else
@@ -348,8 +354,8 @@
                iDin(k) = Cdn_ocn * ustar / hbr_old 
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
-               !weight1 = 0.5_dbl_kind
-               !weight2 = 0.5_dbl_kind
+               !weight1 = 0.0_dbl_kind
+               !weight2 = 1.0_dbl_kind
 
                if (congeln-meltbn.GT.0.0) then
                   iDin(k) = weight1*iDin(k) + & 
