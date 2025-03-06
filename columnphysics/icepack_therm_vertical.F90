@@ -780,6 +780,7 @@
       ! Note: zqsn <= -rhos*Lfresh, so zTsn <= 0.
       !-----------------------------------------------------------------
          zTsn(k) = (Lfresh + zqsn(k)/rhos)/cp_ice
+         write(warnstr,*) 'zTsn', zTsn(k), k
 
       !-----------------------------------------------------------------
       ! Check for zTsn > Tmax (allowing for roundoff error) and zTsn < Tmin.

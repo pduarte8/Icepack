@@ -7,10 +7,11 @@
       module icepack_brine
 
       use icepack_kinds
-      use icepack_parameters, only: p01, p001, p5, c0, c1, c2, c1p5, puny
+      use icepack_parameters, only: p01, p001, p5, c0, c1, c2, c1p5, puny, viscos, h_iceruf
       use icepack_parameters, only: gravit, rhoi, rhow, rhos, depressT
       use icepack_parameters, only: salt_loss, min_salin, rhosi
       use icepack_parameters, only: dts_b, l_sk
+      use icepack_parameters, only: icepack_write_parameters
       use icepack_tracers, only: ntrcr, nt_qice, nt_sice, nt_bgc_S 
       use icepack_tracers, only: nt_Tsfc
       use icepack_zbgc_shared, only: k_o, exp_h, Dm, Ra_c, viscos_dynamic, thinS
@@ -36,7 +37,7 @@
  
       real (kind=dbl_kind), parameter :: &   
          maxhbr  = 1.25_dbl_kind  , & ! brine overflows if hbr > maxhbr*hin
-         viscos  = 2.1e-6_dbl_kind, & ! kinematic viscosity (m^2/s) 
+         !viscos  = 2.1e-6_dbl_kind, & ! kinematic viscosity (m^2/s) 
          ! Brine salinity as a cubic function of temperature
          a1      = -21.4_dbl_kind , & ! (psu/C)  
          a2      = -0.886_dbl_kind, & ! (psu/C^2)
@@ -153,6 +154,8 @@
                                        Bottom_turb_mix, &
                                        Cdn_ocn, congeln, meltbn)
 
+!      integer, intent(in) :: iounit
+
       integer (kind=int_kind), intent(in) :: &
          nilyr       , & ! number of ice layers
          nblyr           ! number of bio layers
@@ -244,7 +247,10 @@
          Bottom_turb_mix
 
       real (kind=dbl_kind) :: &
-         ustar 
+         ustar         , &
+         Rstar         , & ! Reynolds stress number
+         weight1       , &
+         weight2       
 
       character(len=*),parameter :: subname='(compute_microS_mushy)'
 
@@ -312,37 +318,60 @@
                           brine_rho,    ibrine_rho, drho)   
       if (icepack_warnings_aborted(subname)) return
       
+!      call icepack_write_parameters(iounit)
+
+!      write(iounit, *) 'check ice roughness', h_iceruf
       do k= 2, nblyr+1
          ikin(k) = k_o*iphin(k)**exp_h 
-         iDin(k) = iphin(k)*Dm/hbr_old**2  
-         if (hbr_old .GE. Ra_c) &
-            iDin(k) = iDin(k) &
-                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2      
+         iDin(k) = iphin(k)*Dm/hbr_old**2
+         !if (k.eq.nblyr+1) then 
+         !  WRITE(*,*) 'iphin= ',iphin(k)
+         !endif     
          if ((Bottom_turb_mix).and.(k.EQ.nblyr+1)) then
             ustar = sqrt (sqrt(strocnxT**2+strocnyT**2)/rhow)
             !ustar = max (ustar,ustar_min)
+            Rstar = h_iceruf * ustar / viscos
+            if (Rstar.le.5.0_dbl_kind) then
+               weight1 = 1.0_dbl_kind
+               weight2 = 0.0_dbl_kind
+            else
+               if ((Rstar.gt.5.0_dbl_kind).and.(Rstar.le.70.0_dbl_kind)) then
+                  weight1 = MAX(1.0_dbl_kind-1.0_dbl_kind / &
+                                (70.0_dbl_kind-5.0_dbl_kind)*(Rstar-5.0_dbl_kind),&
+                                0.0_dbl_kind)
+                  weight2 = MIN(1.0_dbl_kind / &
+                                (70.0_dbl_kind-5.0_dbl_kind)*(Rstar-5.0_dbl_kind),&
+                                1.0_dbl_kind)
+               else
+                  weight1 = 0.0_dbl_kind
+                  weight2 = 1.0_dbl_kind
+               endif
+            endif   
+               
             if (trim(fbot_xfer_type) == 'Cdn_ocn') then
             ! Note: Cdn_ocn has already been used for calculating ustar 
             ! (formdrag only) --- David Schroeder (CPOM)
-               iDin(k) = Cdn_ocn * ustar / hbr_old
+               iDin(k) = Cdn_ocn * ustar / hbr_old 
             else ! fbot_xfer_type == 'constant'
             ! 0.006 = unitless param for basal heat flx ala McPhee and Maykut
+               !weight1 = 0.0_dbl_kind
+               !weight2 = 1.0_dbl_kind
+
                if (congeln-meltbn.GT.0.0) then
-                  iDin(k) = 0.006_dbl_kind * ustar / hbr_old
+                  iDin(k) = weight1*iDin(k) + & 
+                            weight2*(0.006_dbl_kind * ustar / hbr_old * iphin(k))
                else
                   !iDin(k) = 0.006_dbl_kind / 35.0_dbl_kind * ustar / hbr_old
-                  iDin(k) = 0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old 
+                  iDin(k) = weight1*iDin(k) + &
+                            weight2* &
+                            (0.006_dbl_kind / 70.0_dbl_kind * ustar / hbr_old * iphin(k)) 
                   !iDin(k) = 0.006_dbl_kind * ustar / hbr_old   
                endif
             endif
-         else 
-            ikin(k) = k_o*iphin(k)**exp_h 
-            iDin(k) = iphin(k)*Dm/hbr_old**2  
-            if (hbr_old .GE. Ra_c) &
-               iDin(k) = iDin(k) &
-                  + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2  
-            endif
-        
+         endif
+         if (hbr_old .GE. Ra_c) &
+            iDin(k) = iDin(k) &
+                    + l_sk*ikin(k)*gravit/viscos_dynamic*drho(k)/hbr_old**2 
       enddo    ! k
 
       end subroutine compute_microS_mushy

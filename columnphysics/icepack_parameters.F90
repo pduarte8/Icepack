@@ -7,8 +7,7 @@
       module icepack_parameters
 
       use icepack_kinds
-      use icepack_warnings, only: icepack_warnings_aborted
-
+      use icepack_warnings, only: warnstr, icepack_warnings_aborted !Giulia
       implicit none
       private
 
@@ -55,8 +54,8 @@
          p75  = 0.75_dbl_kind, &
          p333 = c1/c3, &
          p666 = c2/c3, &
-         spval_const= -1.0e36_dbl_kind
-
+         spval_const= -1.0e36_dbl_kind, &
+         viscos  = 2.1e-6_dbl_kind  ! kinematic viscosity (m^2/s)
       real (kind=dbl_kind), public :: &
          secday = 86400.0_dbl_kind ,&! seconds in calendar day
          puny   = 1.0e-11_dbl_kind, &
@@ -354,7 +353,8 @@
          fr_resp_s    = 0.75_dbl_kind   , & ! DMSPd fraction of respiration loss as DMSPd
          y_sk_DMS     = p5              , & ! fraction conversion given high yield
          t_sk_conv    = 3.0_dbl_kind    , & ! Stefels conversion time (d)
-         t_sk_ox      = 10.0_dbl_kind       ! DMS oxidation time (d)
+         t_sk_ox      = 10.0_dbl_kind   , & ! DMS oxidation time (d)
+         h_iceruf     = 0.18_dbl_kind     !0.6e-3 - 0.18_dbl_kind  (m)
 
       logical (kind=log_kind), public :: &
          Bottom_turb_mix  = .false.
@@ -415,7 +415,7 @@
          fr_dFe_in, k_nitrif_in, t_iron_conv_in, max_loss_in, &
          max_dfe_doc1_in, fr_resp_s_in, conserv_check_in, &
          y_sk_DMS_in, t_sk_conv_in, t_sk_ox_in, frazil_scav_in, &
-         sw_redist_in, sw_frac_in, sw_dtemp_in)
+         sw_redist_in, sw_frac_in, sw_dtemp_in, h_iceruf_in)
 
       !-----------------------------------------------------------------
       ! parameter constants
@@ -681,7 +681,8 @@
          y_sk_DMS_in         , & ! fraction conversion given high yield
          t_sk_conv_in        , & ! Stefels conversion time (d)
          t_sk_ox_in          , & ! DMS oxidation time (d)
-         frazil_scav_in          ! scavenging fraction or multiple in frazil ice
+         frazil_scav_in      , & ! scavenging fraction or multiple in frazil ice
+         h_iceruf_in             ! roughness of ice for calculating turbulent exchange of nutrients
 
       real (kind=dbl_kind), intent(in), optional :: &
          sk_l_in,       & ! skeletal layer thickness (m)
@@ -863,6 +864,8 @@
       if (present(sw_redist_in)         ) sw_redist        = sw_redist_in
       if (present(sw_frac_in)           ) sw_frac          = sw_frac_in
       if (present(sw_dtemp_in)          ) sw_dtemp         = sw_dtemp_in
+      if (present(h_iceruf_in)          ) h_iceruf         = h_iceruf_in
+
 
       call icepack_recompute_constants()
       if (icepack_warnings_aborted(subname)) return
@@ -916,7 +919,7 @@
          fr_mort2min_out, fr_resp_s_out, fr_dFe_out, &
          k_nitrif_out, t_iron_conv_out, max_loss_out, max_dfe_doc1_out, &
          y_sk_DMS_out, t_sk_conv_out, t_sk_ox_out, frazil_scav_out, &
-         sw_redist_out, sw_frac_out, sw_dtemp_out)
+         sw_redist_out, sw_frac_out, sw_dtemp_out, h_iceruf_out)
 
       !-----------------------------------------------------------------
       ! parameter constants
@@ -1191,7 +1194,8 @@
          y_sk_DMS_out         , & ! fraction conversion given high yield
          t_sk_conv_out        , & ! Stefels conversion time (d)
          t_sk_ox_out          , & ! DMS oxidation time (d)
-         frazil_scav_out          ! scavenging fraction or multiple in frazil ice
+         frazil_scav_out      , & ! scavenging fraction or multiple in frazil ice
+         h_iceruf_out             ! ice roughness used to calculate turublent exhcnage of nutrients
 
       real (kind=dbl_kind), intent(out), optional :: &
          sk_l_out,       & ! skeletal layer thickness (m)
@@ -1417,6 +1421,8 @@
       if (present(sw_redist_out)         ) sw_redist_out    = sw_redist
       if (present(sw_frac_out)           ) sw_frac_out      = sw_frac
       if (present(sw_dtemp_out)          ) sw_dtemp_out     = sw_dtemp
+      if (present(h_iceruf_out)          ) h_iceruf_out     = h_iceruf
+
 
       call icepack_recompute_constants()
       if (icepack_warnings_aborted(subname)) return
@@ -1592,6 +1598,8 @@
         write(iounit,*) "  sw_redist     = ", sw_redist
         write(iounit,*) "  sw_frac       = ", sw_frac
         write(iounit,*) "  sw_dtemp      = ", sw_dtemp
+        write(iounit,*) "  h_iceruf      = ", h_iceruf
+
 
       end subroutine icepack_write_parameters
 
@@ -1614,7 +1622,8 @@
         pi2    = c2*pi
         rad_to_deg = c180/pi
 
-      end subroutine icepack_recompute_constants
+!     write(warnstr,*) subname, 'Lfresh', Lfresh, Lsub, Lvap !Giulia 
+     end subroutine icepack_recompute_constants
 
 !=======================================================================
 
